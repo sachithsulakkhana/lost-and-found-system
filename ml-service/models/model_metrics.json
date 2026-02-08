@@ -1,0 +1,41 @@
+{
+  "model_name": "Random Forest",
+  "accuracy": 0.8571428571428571,
+  "precision": 0.0,
+  "recall": 0.0,
+  "f1_score": 0.0,
+  "roc_auc": 0.4259259259259259,
+  "feature_importance": {
+    "hour": 0.1462136071245005,
+    "day_of_week": 0.06441333138921619,
+    "is_weekend": 0.0,
+    "is_peak_hour": 0.011054892686805417,
+    "location_encoded": 0.11607228144699802,
+    "itemType_encoded": 0.19935688941352864,
+    "crowdLevel_encoded": 0.04450009129702092,
+    "weather_encoded": 0.06713409829761087,
+    "dayType_encoded": 0.026659222590391333,
+    "incidents_last_1h": 0.0024945977985003144,
+    "incidents_last_6h": 0.026545604823414747,
+    "incidents_last_24h": 0.07195270614124981,
+    "avg_crowd_last_6h": 0.0553697678706075,
+    "lostCount_numeric": 0.1682329091201558
+  },
+  "training_date": "2026-01-24T12:18:51.830374",
+  "features_used": [
+    "hour",
+    "day_of_week",
+    "is_weekend",
+    "is_peak_hour",
+    "location_encoded",
+    "itemType_encoded",
+    "crowdLevel_encoded",
+    "weather_encoded",
+    "dayType_encoded",
+    "incidents_last_1h",
+    "incidents_last_6h",
+    "incidents_last_24h",
+    "avg_crowd_last_6h",
+    "lostCount_numeric"
+  ]
+}

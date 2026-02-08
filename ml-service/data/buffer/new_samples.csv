@@ -1,0 +1,11 @@
+timestamp,location,itemType,crowdLevel,weather,dayType,time,lostCount,incident_occurred,reported_at
+,Cafeteria,bag,High,Rainy,Weekday,17:00,5,1,2026-01-10T14:20:24.869846
+,Auditorium,bag,High,Rainy,Weekday,13:00,5,1,2026-01-10T14:20:26.207827
+,Parking Lot,keys,Medium,Sunny,Weekday,17:00,5,1,2026-01-10T14:20:27.554755
+,Library,laptop,Medium,Cloudy,Weekday,9:00,5,1,2026-01-10T14:20:28.887399
+,Cafeteria,laptop,Low,Rainy,Weekday,10:00,5,1,2026-01-10T14:20:30.225418
+,Cafeteria,phone,Low,Sunny,Weekday,13:00,5,1,2026-01-10T14:20:31.555544
+,Auditorium,laptop,Medium,Rainy,Weekday,18:00,5,1,2026-01-10T14:20:32.918768
+,Auditorium,wallet,Low,Rainy,Weekday,17:00,5,1,2026-01-10T14:20:34.351404
+,Library,phone,Low,Cloudy,Weekday,18:00,5,1,2026-01-10T14:20:35.734697
+,Parking Lot,laptop,Low,Rainy,Weekday,16:00,5,1,2026-01-10T14:20:37.151447

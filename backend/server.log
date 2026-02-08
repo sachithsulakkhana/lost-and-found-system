@@ -1,0 +1,35 @@
+
+> lost-and-found-backend@2.0.0 start
+> node src/server.js
+
+🌤️  Weather Service initialized with Open-Meteo API (FREE)
+✅ Server running on port 5000
+📡 Environment: development
+═══════════════════════════════════════════════════════════
+🚀 Starting reminder scheduler...
+⏰ Scheduler will run every minute
+⏰ Reminder scheduler running at 2026-01-04T02:55:29.960Z
+✅ Reminder scheduler started
+🤖 Loading Enhanced ML Ensemble Model...
+✓ Ensemble model loaded from D:\lost-and-found-working\backend\data\ensemble_model.json
+✅ ML Model Loaded Successfully!
+   🎯 Model Type: Academic Ensemble Learning System
+   📊 RF Accuracy: 98.93%
+   🧠 NN Accuracy: 100.00%
+   🎯 Ensemble Accuracy: 98.93%
+   📍 Locations: 12
+   ✨ Features: 22 advanced features
+═══════════════════════════════════════════════════════════
+🚀 Academic ML System Ready!
+📚 Ensemble Learning: Random Forest + Neural Network
+═══════════════════════════════════════════════════════════
+Error processing SMS reminders: MongooseError: Operation `smsreminders.find()` buffering timed out after 10000ms
+    at Timeout.<anonymous> (D:\lost-and-found-working\backend\node_modules\mongoose\lib\drivers\node-mongodb-native\collection.js:185:23)
+    at listOnTimeout (node:internal/timers:605:17)
+    at process.processTimers (node:internal/timers:541:7)
+Error processing IVR reminders: MongooseError: Operation `ivrcalls.find()` buffering timed out after 10000ms
+    at Timeout.<anonymous> (D:\lost-and-found-working\backend\node_modules\mongoose\lib\drivers\node-mongodb-native\collection.js:185:23)
+    at listOnTimeout (node:internal/timers:605:17)
+    at process.processTimers (node:internal/timers:541:7)
+✅ Reminder processing completed
+❌ MongoDB connection error: getaddrinfo ENOTFOUND mongo

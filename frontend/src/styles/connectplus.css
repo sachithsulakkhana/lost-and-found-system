@@ -1,0 +1,228 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600;700;800&display=swap');
+
+:root{
+  --cp-primary:#b66dff;
+  --cp-primary-2:#4e64ff;
+  --cp-accent:#ff8a00;
+  --cp-bg:#f2edf3;
+  --cp-sidebar:#191c24;
+  --cp-sidebar-2:#111318;
+  --cp-text:#343a40;
+  --cp-muted:#6c757d;
+  --cp-card:#ffffff;
+  --cp-border:rgba(0,0,0,.075);
+}
+
+html,body,#root{height:100%;}
+body{
+  background: var(--cp-bg);
+  color: var(--cp-text);
+  font-family: 'Nunito', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  font-size: .875rem;
+  line-height: 1.4;
+}
+
+/* App shell */
+.cp-app{min-height:100vh; display:flex;}
+.cp-sidebar{
+  width: 244px;
+  background: linear-gradient(180deg, var(--cp-sidebar) 0%, var(--cp-sidebar-2) 100%);
+  color:#fff;
+  position:fixed;
+  top:0; left:0; bottom:0;
+  z-index:1030;
+  overflow-y:auto;
+}
+.cp-sidebar .brand{
+  height:64px;
+  display:flex;
+  align-items:center;
+  padding:0 18px;
+  border-bottom:1px solid rgba(255,255,255,.06);
+}
+.cp-sidebar .brand .logo-dot{
+  width:10px; height:10px; border-radius:999px;
+  background: linear-gradient(90deg, var(--cp-primary), var(--cp-primary-2));
+  margin-right:10px;
+}
+.cp-sidebar .nav-section{padding:14px 10px;}
+.cp-sidebar .nav-title{font-size:.72rem; letter-spacing:.08em; text-transform:uppercase; color:rgba(255,255,255,.55); padding:10px 12px 6px;}
+.cp-sidebar .nav-link{
+  color: rgba(255,255,255,.82);
+  border-radius:10px;
+  padding:10px 12px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  font-weight:600;
+  font-size:.875rem;
+}
+.cp-sidebar .nav-link:hover{background:rgba(255,255,255,.08); color:#fff;}
+.cp-sidebar .nav-link.active{background: linear-gradient(90deg, rgba(182,109,255,.25), rgba(78,100,255,.18)); color:#fff;}
+.cp-sidebar .nav-link i{font-size:1.15rem; opacity:.95;}
+
+.cp-main{
+  margin-left:244px;
+  width:calc(100% - 244px);
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+}
+
+.cp-topbar{
+  height:63px;
+  position:sticky;
+  top:0;
+  z-index:1020;
+  background:#fff;
+  border-bottom:1px solid var(--cp-border);
+  box-shadow: 0 0 20px rgba(0,0,0,.04);
+}
+
+.cp-topbar .input-group-text{border-color:var(--cp-border);
+}
+.cp-topbar .form-control{border-color:var(--cp-border);}
+.cp-topbar .form-control:focus{border-color:rgba(182,109,255,.45); box-shadow:0 0 0 .2rem rgba(182,109,255,.12);}
+
+.cp-content{padding:24px 24px 0; flex:1;}
+
+/* Cards (match Connect Plus) */
+.cp-card,
+.card{
+  background:var(--cp-card);
+  border:0;
+  border-radius:.3125rem;
+  box-shadow:0 0 35px rgba(154,161,171,.15);
+}
+.cp-card .cp-card-header{padding:14px 16px; border-bottom:1px solid var(--cp-border);}
+.cp-card .cp-card-body{padding:16px;}
+
+.card .card-body{padding:1.5rem;}
+.card .card-title{font-weight:700;}
+
+/* Headings */
+h1,h2,h3,h4,h5{letter-spacing:-.01em;}
+h2{font-size:1.5rem;}
+h3{font-size:1.125rem; font-weight:700;}
+
+.cp-gradient{background: linear-gradient(90deg, var(--cp-primary), var(--cp-primary-2)); color:#fff;}
+.cp-badge-soft{background:rgba(182,109,255,.14); color:var(--cp-primary); border:1px solid rgba(182,109,255,.25);}
+
+/* Stat tiles */
+.cp-stat{position:relative; overflow:hidden;}
+.cp-stat .icon{
+  width:44px; height:44px;
+  border-radius:14px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background: linear-gradient(90deg, rgba(182,109,255,.18), rgba(78,100,255,.16));
+  border:1px solid rgba(0,0,0,.04);
+}
+.cp-stat .icon i{font-size:1.35rem; color:var(--cp-primary);}
+.cp-stat .value{font-size:1.9rem; font-weight:800; line-height:1.1;}
+.cp-stat .label{color:var(--cp-muted); font-weight:600; font-size:.9rem;}
+
+/* Auth */
+.cp-auth{
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background: radial-gradient(1200px 600px at 20% 10%, rgba(182,109,255,.35), transparent 60%),
+              radial-gradient(1200px 600px at 80% 20%, rgba(78,100,255,.28), transparent 60%),
+              radial-gradient(900px 500px at 60% 90%, rgba(255,138,0,.18), transparent 60%),
+              var(--cp-bg);
+  padding:24px;
+}
+.cp-auth-card{
+  width:min(980px, 100%);
+  border-radius:18px;
+  overflow:hidden;
+  box-shadow:0 14px 50px rgba(0,0,0,.12);
+  border:1px solid rgba(0,0,0,.06);
+  background:#fff;
+}
+.cp-auth-left{
+  background: linear-gradient(135deg, var(--cp-primary) 0%, var(--cp-primary-2) 100%);
+  color:#fff;
+  padding:42px;
+}
+.cp-auth-left h1{font-weight:800;}
+.cp-auth-left p{color:rgba(255,255,255,.9);}
+.cp-auth-right{padding:34px;}
+
+.cp-btn-primary{
+  background: linear-gradient(90deg, var(--cp-primary), var(--cp-primary-2));
+  border:0;
+  color:#fff;
+  box-shadow: 0 10px 24px rgba(182,109,255,.25);
+}
+.cp-btn-primary:hover{
+  filter: brightness(.98);
+  color:#fff;
+}
+
+.cp-divider{
+  position:relative;
+  text-align:center;
+  margin: 22px 0;
+}
+.cp-divider:before{
+  content:"";
+  position:absolute;
+  left:0;
+  right:0;
+  top:50%;
+  height:1px;
+  background: var(--cp-border);
+}
+.cp-divider span{
+  position:relative;
+  z-index:1;
+  background:#fff;
+  padding:0 10px;
+  color: var(--cp-muted);
+  font-size:.82rem;
+}
+
+.form-control:focus{border-color:rgba(182,109,255,.55); box-shadow:0 0 0 .25rem rgba(182,109,255,.15);} 
+.btn-cp{background: linear-gradient(90deg, var(--cp-primary), var(--cp-primary-2)); border:0; color:#fff; font-weight:700;}
+.btn-cp:hover{opacity:.95; color:#fff;}
+
+/* Leaflet tweaks */
+.leaflet-container{border-radius:14px;}
+
+/* Mobile sidebar overlay */
+.cp-sidebar-overlay{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.45);
+  z-index:1029;
+}
+
+@media (max-width: 991.98px){
+  .cp-sidebar{
+    position:fixed;
+    transform:translateX(-100%);
+    transition:transform .25s ease;
+  }
+  .cp-sidebar.open{
+    transform:translateX(0);
+  }
+  .cp-main{
+    margin-left:0;
+    width:100%;
+  }
+  .cp-content{
+    padding:16px 12px 0;
+  }
+  .cp-topbar{
+    height:56px;
+  }
+  /* Prevent horizontal overflow on small screens */
+  .cp-content .card,
+  .cp-content .MuiCard-root{
+    overflow-x:auto;
+  }
+}
