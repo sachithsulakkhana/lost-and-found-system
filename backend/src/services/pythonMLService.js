@@ -38,6 +38,30 @@ class PythonMLService {
   /**
    * Get prediction for a single location
    */
+  // Expected daily record count per zone (matches training data distribution).
+  // Used as `incidents_last_24h` proxy so the model receives realistic context.
+  static zoneDailyRate(location) {
+    const rates = {
+      'P and S Cafeteria': 10,
+      'Anohana Canteen': 7,
+      'Bird Nest Canteen': 7,
+      'Basement Canteen': 4,
+      'New Building Canteen': 4,
+      'Juice Bar': 3,
+      'Library': 6,
+      'Old Library Space': 4,
+      'Bird Nest Study Area': 4,
+      'Business Faculty Study Area': 3,
+      'Study Area 4th Floor New Building': 3,
+      '3rd Floor Study Area': 3,
+      'Library outdoor Space storage': 2,
+      'New Building Bio Laboratory outside space Storage Cabins': 2,
+      'Main building 4th floor B401 Laboratory outside space Storage Cabins': 2,
+      'Main Building 5th floor outside space Storage Cabin': 2,
+    };
+    return rates[location] ?? 4;
+  }
+
   async predict(location, crowdLevel, timeOfDay, weather = 'Sunny', dayType = 'Weekday', itemType = 'phone') {
     try {
       const response = await axios.post(`${this.baseURL}/api/predict`, {
@@ -47,26 +71,41 @@ class PythonMLService {
         weather,
         day_type: dayType,
         item_type: itemType,
-        lost_count: 5
+        lost_count: PythonMLService.zoneDailyRate(location)
       }, {
         timeout: 5000
       });
 
       const data = response.data;
 
-      // Convert to format expected by frontend
-      // For XGBoost (single model), we use the risk_level as both RF and NN prediction
-      const riskPercentage = this.getRiskPercentage(data.risk_category, data.confidence);
+      // Extract the incident probability from the confidence object.
+      // FastAPI returns: {"No Incident": 0.95, "Incident": 0.05}
+      // Flask returns:   {"Low": 0.70, "Medium": 0.20, "High": 0.10}
+      let incidentProb = 0;
+      const conf = data.confidence || {};
+      if ('Incident' in conf) {
+        // FastAPI binary format
+        incidentProb = conf['Incident'];
+      } else if ('Incident Expected' in conf) {
+        incidentProb = conf['Incident Expected'];
+      } else if ('Low' in conf || 'Medium' in conf || 'High' in conf) {
+        // Flask 3-class format: risk = P(Medium) + P(High)
+        // (only the predicted category has a non-zero value in Flask's response)
+        incidentProb = (conf['High'] || 0) + (conf['Medium'] || 0);
+      } else if (typeof data.probability === 'number') {
+        incidentProb = data.probability;
+      }
+      const riskPercentage = Math.round(incidentProb * 10000) / 100;
 
       return {
         location,
-        riskLevel: this.mapRiskCategory(data.risk_category),
-        riskScore: riskPercentage, // Use percentage as risk score
+        riskLevel: this.mapRiskByProbability(incidentProb),
+        riskScore: riskPercentage,
         confidence: data.confidence,
-        probability: riskPercentage / 100,
-        rfPrediction: riskPercentage, // Use XGBoost prediction as RF equivalent
-        nnPrediction: riskPercentage, // Use XGBoost prediction as NN equivalent
-        ensemblePrediction: riskPercentage, // XGBoost is the ensemble
+        probability: incidentProb,
+        rfPrediction: riskPercentage,
+        nnPrediction: riskPercentage,
+        ensemblePrediction: riskPercentage,
         modelType: data.model_info?.model_type || 'Python XGBoost',
         timestamp: data.timestamp
       };
@@ -77,7 +116,7 @@ class PythonMLService {
       return {
         location,
         riskLevel: 'MEDIUM',
-        riskScore: 0.5,
+        riskScore: 50,
         confidence: { 'No Incident': 0.5, 'Incident': 0.5 },
         probability: 0.5,
         modelType: 'Fallback',
@@ -132,28 +171,14 @@ class PythonMLService {
   }
 
   /**
-   * Map Python risk category to legacy format
+   * Map incident probability to 4-level risk classification
+   * Thresholds tuned for a binary classifier (probability of incident occurring)
    */
-  mapRiskCategory(category) {
-    if (category === 'No Incident') return 'LOW';
-    if (category === 'Incident Expected') return 'HIGH';
-    if (category === 'Low') return 'LOW';
-    if (category === 'High') return 'HIGH';
-    return 'MEDIUM';
-  }
-
-  /**
-   * Get risk percentage from category and confidence
-   */
-  getRiskPercentage(category, confidence) {
-    // Return the confidence score as percentage
-    if (category === 'Low' || category === 'No Incident') {
-      return Math.max(confidence.Low || 0, 1 - (confidence.High || 0)) * 100;
-    } else if (category === 'High' || category === 'Incident Expected') {
-      return Math.max(confidence.High || 0, confidence.Medium || 0, confidence.Low || 0) * 100;
-    } else {
-      return Math.max(confidence.Medium || 0, confidence.High || 0, confidence.Low || 0) * 100;
-    }
+  mapRiskByProbability(prob) {
+    if (prob >= 0.70) return 'CRITICAL';
+    if (prob >= 0.50) return 'HIGH';
+    if (prob >= 0.30) return 'MEDIUM';
+    return 'LOW';
   }
 
   /**

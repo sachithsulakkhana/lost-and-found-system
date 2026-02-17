@@ -4,6 +4,104 @@ const pythonMLService = require('../services/pythonMLService');
 const Zone = require('../models/Zone');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const weatherService = require('../services/weatherService');
+const onlineLearningService = require('../services/onlineLearningService');
+
+/**
+ * POST /api/ml-training/report-incident
+ * Report a new incident for online learning / model update
+ */
+router.post('/report-incident', requireAuth, async (req, res) => {
+  try {
+    const { location, itemType, description } = req.body;
+    if (!location || !itemType) {
+      return res.status(400).json({ error: 'location and itemType are required' });
+    }
+
+    const currentWeather = await weatherService.getCurrentWeather();
+    const now = new Date();
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Colombo', hour: '2-digit', minute: '2-digit', hour12: false
+    });
+    const currentTime = formatter.format(now);
+    const dayName = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Colombo', weekday: 'short' }).format(now);
+    const dayType = (dayName === 'Sat' || dayName === 'Sun') ? 'Weekend' : 'Weekday';
+
+    const result = await onlineLearningService.reportLostItemToML({
+      location,
+      itemType,
+      weather: currentWeather,
+      time: currentTime,
+      dayType,
+      crowdLevel: weatherService.getCurrentCrowdLevel() || 'Medium',
+      description
+    });
+
+    if (!result) {
+      return res.status(503).json({ error: 'ML service unavailable. Incident not recorded.' });
+    }
+
+    res.json({
+      success: true,
+      location,
+      itemType,
+      bufferStatus: result.buffer_status || null,
+      retrainTriggered: result.retrain_triggered || false,
+      newModelVersion: result.retrain_result?.version || null,
+      newAccuracy: result.retrain_result?.metrics?.accuracy || null,
+      message: result.retrain_triggered
+        ? `Incident recorded. Model retrained to version ${result.retrain_result?.version}`
+        : `Incident recorded. Buffer: ${result.buffer_status?.buffer_size}/${result.buffer_status?.retrain_threshold}`
+    });
+  } catch (error) {
+    console.error('Report incident error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /api/ml-training/buffer-status
+ * Get online learning buffer status
+ */
+router.get('/buffer-status', requireAuth, async (req, res) => {
+  try {
+    const status = await onlineLearningService.getBufferStatus();
+    if (!status) {
+      return res.status(503).json({ error: 'ML service unavailable' });
+    }
+    res.json(status);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * POST /api/ml-training/force-retrain
+ * Manually trigger model retraining (admin only)
+ */
+router.post('/force-retrain', requireAuth, requireRole('admin'), async (req, res) => {
+  try {
+    const result = await onlineLearningService.triggerRetraining();
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /api/ml-training/model-versions
+ * Get model version history
+ */
+router.get('/model-versions', requireAuth, async (req, res) => {
+  try {
+    const versions = await onlineLearningService.getModelVersions();
+    if (!versions) {
+      return res.status(503).json({ error: 'ML service unavailable' });
+    }
+    res.json(versions);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 /**
  * POST /api/ml-training/train

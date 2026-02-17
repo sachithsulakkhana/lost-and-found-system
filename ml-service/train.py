@@ -79,24 +79,27 @@ class RiskPredictor:
         print(f"✅ Loaded {len(df)} records")
         print(f"Columns: {list(df.columns)}")
 
-        # Create timestamp from time field
+        # Use existing timestamp column when available (preferred)
+        if 'timestamp' in df.columns:
+            parsed = pd.to_datetime(df['timestamp'], errors='coerce')
+            if parsed.notna().sum() > len(df) * 0.8:
+                df['timestamp'] = parsed
+                if 'time' in df.columns:
+                    df['hour']   = df['time'].str.split(':').str[0].astype(int)
+                    df['minute'] = df['time'].str.split(':').str[1].astype(int)
+                else:
+                    df['hour']   = df['timestamp'].dt.hour
+                    df['minute'] = df['timestamp'].dt.minute
+                df = df.sort_values('timestamp').reset_index(drop=True)
+                print(f"   Using actual timestamps: {df['timestamp'].min()} to {df['timestamp'].max()}")
+                return df
+
+        # Create timestamp from time field (fallback for legacy CSV)
         if 'time' in df.columns:
-            # Parse time as HH:MM format
-            df['hour'] = df['time'].str.split(':').str[0].astype(int)
+            df['hour']   = df['time'].str.split(':').str[0].astype(int)
             df['minute'] = df['time'].str.split(':').str[1].astype(int)
-
-            # Create a sortable timestamp (using dates from index as proxy)
-            # In real scenario, you'd have actual dates
-            df['timestamp'] = pd.to_datetime(
-                df.index.to_series().astype(str) + ' ' + df['time'],
-                format='%Y-%m-%d %H:%M',
-                errors='coerce'
-            )
-
-            # If timestamp parsing fails, create synthetic timestamps
-            if df['timestamp'].isna().any():
-                base_date = datetime(2024, 1, 1)
-                df['timestamp'] = [base_date + timedelta(hours=i) for i in range(len(df))]
+            base_date = datetime(2024, 1, 1)
+            df['timestamp'] = [base_date + timedelta(hours=i) for i in range(len(df))]
 
         # Sort by timestamp for time-based split
         df = df.sort_values('timestamp').reset_index(drop=True)

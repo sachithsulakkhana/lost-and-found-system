@@ -194,8 +194,20 @@ class WeatherService {
     const dayName = dayFormatter.format(now);
     const dayOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(dayName);
 
-    // Weekend = low crowd
-    if (dayOfWeek === 0 || dayOfWeek === 6) {
+    // Saturday = very crowded (SLIIT weekend batch classes run full day)
+    if (dayOfWeek === 6) {
+      if (hour >= 8 && hour < 9) return 'very_high';   // Morning rush
+      if (hour >= 9 && hour < 12) return 'high';        // Morning classes
+      if (hour >= 12 && hour < 13) return 'very_high';  // Lunch
+      if (hour >= 13 && hour < 17) return 'high';       // Afternoon classes
+      if (hour >= 17 && hour < 19) return 'medium';     // Evening dispersal
+      return 'low';                                       // Night
+    }
+
+    // Sunday = moderate crowd (some weekend batches)
+    if (dayOfWeek === 0) {
+      if (hour >= 8 && hour < 13) return 'high';
+      if (hour >= 13 && hour < 17) return 'medium';
       return 'low';
     }
 

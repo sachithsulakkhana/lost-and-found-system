@@ -77,22 +77,27 @@ def preprocess_input(data):
     else:
         hour = 12
 
+    day_type = data.get('day_type', 'Weekday')
+    is_weekend = 1 if day_type.lower() in ('weekend', 'saturday', 'sunday') else 0
+
     # Create DataFrame with expected structure
+    # Rolling features default to 0 so that location_encoded drives the prediction;
+    # lostCount_numeric comes from the request so callers can tune it per zone.
     df = pd.DataFrame([{
         'location': data.get('location', 'Library'),
         'itemType': data.get('item_type', 'Other'),
         'crowdLevel': data.get('crowd_level', 'Medium'),
         'weather': data.get('weather', 'Sunny'),
-        'dayType': data.get('day_type', 'Weekday'),
+        'dayType': day_type,
         'hour': hour,
-        'day_of_week': 2,
-        'is_weekend': 0,
+        'day_of_week': 6 if is_weekend else 2,
+        'is_weekend': is_weekend,
         'is_peak_hour': 1 if hour in [12, 13, 17, 18] else 0,
-        'incidents_last_1h': 1,
-        'incidents_last_6h': 5,
-        'incidents_last_24h': 12,
-        'avg_crowd_last_6h': 1,
-        'lostCount_numeric': 5
+        'incidents_last_1h': 0,
+        'incidents_last_6h': 0,
+        'incidents_last_24h': int(data.get('lost_count', 0)),
+        'avg_crowd_last_6h': 0,
+        'lostCount_numeric': int(data.get('lost_count', 0))
     }])
 
     # Encode categorical variables
@@ -242,6 +247,13 @@ def model_info():
         'model_loaded': True
     })
 
+@app.route('/api/reload-model', methods=['POST'])
+def reload_model():
+    """Reload model from disk without retraining"""
+    load_model()
+    return jsonify({'success': True, 'message': 'Model reloaded', 'timestamp': datetime.now(SL_TZ).isoformat()})
+
+
 @app.route('/api/train', methods=['POST'])
 def train_model():
     """
@@ -264,7 +276,10 @@ def train_model():
 
         # Import training module
         sys.path.append(os.path.dirname(__file__))
-        from train_model_enhanced import main as train_main
+        try:
+            from train_model_enhanced import main as train_main
+        except ImportError:
+            from train import main as train_main
 
         # Train model
         print(f"Starting model training with data from: {csv_path}")

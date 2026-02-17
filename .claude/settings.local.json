@@ -1,7 +1,17 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(curl:*)",
+      "Bash(where:*)",
+      "Bash(py:*)",
+      "Bash(\"venv/Scripts/python.exe\" generate_training_data.py)",
+      "Bash(pip show:*)",
+      "Bash(pip3 show:*)",
+      "Bash(\"C:/Users/sachi/AppData/Local/Python/bin/python3.exe\" -c \"import pandas; print\\(''pandas ok''\\)\")",
+      "Bash(\"C:/Users/sachi/AppData/Local/Python/bin/python3.exe\" generate_training_data.py)",
+      "Bash(PYTHONUTF8=1 PYTHONIOENCODING=utf-8 \"C:/Users/sachi/AppData/Local/Python/bin/python3.exe\":*)",
+      "Bash(git status -u)"
     ]
   }
 }
