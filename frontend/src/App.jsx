@@ -17,6 +17,7 @@ import AdminBookingCalendarPage from './pages/AdminBookingCalendarPage';
 import RiskDashboardPage from './pages/RiskDashboardPage';
 import EnhancedZoneBookingPage from './pages/EnhancedZoneBookingPage';
 import AdminBookingApprovalsPage from './pages/AdminBookingApprovalsPage';
+import DeviceLearningPage from './pages/DeviceLearningPage';
 
 function ProtectedRoute({ children }) {
   const token = localStorage.getItem('token');
@@ -53,6 +54,7 @@ export default function App() {
         <Route path="/admin/bookings" element={<WithLayout><AdminBookingsPage /></WithLayout>} />
         <Route path="/admin/booking-approvals" element={<WithLayout><AdminBookingApprovalsPage /></WithLayout>} />
 
+        <Route path="/learning" element={<WithLayout><DeviceLearningPage /></WithLayout>} />
         <Route path="/risk-dashboard" element={<WithLayout><RiskDashboardPage /></WithLayout>} />
         <Route path="/zone-booking" element={<WithLayout><EnhancedZoneBookingPage /></WithLayout>} />
 

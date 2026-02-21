@@ -33,6 +33,7 @@ export default function AppLayout({ children }) {
       { label: 'Zone Booking', to: '/zone-booking', icon: 'mdi-map' },
       { label: 'My Devices', to: '/devices', icon: 'mdi-devices' },
       { label: 'Device Monitoring', to: '/monitoring', icon: 'mdi-eye' },
+      { label: 'Learning Insights', to: '/learning',   icon: 'mdi-brain' },
       { label: 'Calendar', to: '/calendar', icon: 'mdi-calendar-month' },
       { label: 'Alerts', to: '/alerts', icon: 'mdi-bell-alert-outline' },
       { label: 'Reminders', to: '/reminders', icon: 'mdi-bell-ring-outline' },
