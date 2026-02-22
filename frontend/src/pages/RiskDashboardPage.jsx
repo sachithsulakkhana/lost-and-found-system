@@ -62,6 +62,7 @@ export default function RiskDashboardPage() {
   const [bufferLoading, setBufferLoading] = useState(false);
   const [modelVersions, setModelVersions] = useState(null);
   const [forceRetraining, setForceRetraining] = useState(false);
+  const [mlPipeline, setMlPipeline] = useState(null); // null | {step:0-4, retrained, accuracy}
 
   const user = useMemo(() => getUser(), []);
   const isAdmin = user?.role === 'admin';
@@ -162,19 +163,29 @@ export default function RiskDashboardPage() {
       return;
     }
     setSubmitting(true);
+    // Animate ML pipeline steps
+    setMlPipeline({ step: 1, retrained: false, accuracy: null });
+    const t1 = setTimeout(() => setMlPipeline(p => p && ({ ...p, step: 2 })), 700);
+    const t2 = setTimeout(() => setMlPipeline(p => p && ({ ...p, step: 3 })), 1400);
     try {
       const { data } = await api.post('/ml-training/report-incident', incidentForm);
       setLastIncidentResult(data);
       setBufferStatus(data.bufferStatus);
       setIncidentForm(prev => ({ ...prev, description: '' }));
-
+      setTimeout(() => {
+        setMlPipeline({ step: 4, retrained: data.retrainTriggered, accuracy: data.newAccuracy });
+        setTimeout(() => setMlPipeline(null), 4000);
+      }, 2100);
       if (data.retrainTriggered) {
         toast.success(`Model retrained! New version: ${data.newModelVersion || '—'}`);
         loadModelVersions();
+        loadHeatmap();
       } else {
         toast.success(data.message || 'Incident reported successfully.');
       }
     } catch (e) {
+      clearTimeout(t1); clearTimeout(t2);
+      setMlPipeline(null);
       toast.error(e?.response?.data?.error || 'Failed to report incident.');
     } finally {
       setSubmitting(false);
@@ -528,8 +539,42 @@ export default function RiskDashboardPage() {
                   </div>
                 </div>
 
+                {/* ML Pipeline animation */}
+                {mlPipeline && (() => {
+                  const steps = [
+                    { icon: 'mdi-upload-network', label: 'Receiving incident data…' },
+                    { icon: 'mdi-database-plus', label: 'Adding to training buffer…' },
+                    { icon: 'mdi-cog-sync',       label: 'Running online learning…' },
+                    { icon: mlPipeline.retrained ? 'mdi-check-circle' : 'mdi-information', label: mlPipeline.retrained ? `Model retrained! Accuracy: ${mlPipeline.accuracy ? (mlPipeline.accuracy*100).toFixed(1)+'%' : 'updated'}` : 'Buffer updated — waiting for threshold' },
+                  ];
+                  return (
+                    <div className="mt-3 p-3 rounded-3" style={{ background: '#f8faff', border: '1px solid #c7d2fe' }}>
+                      <div className="fw-semibold small mb-2 d-flex align-items-center gap-2">
+                        <i className="mdi mdi-brain text-primary" /> ML Pipeline
+                      </div>
+                      {steps.map((s, i) => {
+                        const active  = mlPipeline.step === i + 1;
+                        const done    = mlPipeline.step >  i + 1;
+                        const pending = mlPipeline.step <  i + 1;
+                        return (
+                          <div key={i} className="d-flex align-items-center gap-2 mb-2" style={{ opacity: pending ? 0.35 : 1, transition: 'opacity .3s' }}>
+                            <div style={{ width: 28, height: 28, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                              background: done ? '#16a34a' : active ? '#4e64ff' : '#e5e7eb',
+                              color: (done || active) ? '#fff' : '#9ca3af', fontSize: 14 }}>
+                              {active
+                                ? <span className="spinner-border spinner-border-sm" style={{ width: 14, height: 14, borderWidth: 2 }} />
+                                : <i className={`mdi ${done ? 'mdi-check' : s.icon}`} />}
+                            </div>
+                            <span className="small" style={{ fontWeight: active ? 600 : 400, color: done ? '#16a34a' : active ? '#4e64ff' : 'inherit' }}>{s.label}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
+
                 {/* Inline result after submit */}
-                {lastIncidentResult && (
+                {lastIncidentResult && !mlPipeline && (
                   <div className={`alert mt-3 mb-0 ${lastIncidentResult.retrainTriggered ? 'alert-success' : 'alert-info'}`}>
                     <div className="d-flex align-items-center gap-2">
                       <i className={`mdi fs-5 ${lastIncidentResult.retrainTriggered ? 'mdi-check-circle' : 'mdi-information-outline'}`} />

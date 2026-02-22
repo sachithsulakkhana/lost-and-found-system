@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { MapContainer, TileLayer, CircleMarker, Popup, Marker } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -75,6 +75,12 @@ export default function DeviceLearningPage() {
   const [calcHour, setCalcHour] = useState(new Date().getHours());
   const [calcScore, setCalcScore] = useState(null);
 
+  // ── Replay animation state ──────────────────────────────────────────────────
+  const [replayIdx,     setReplayIdx]     = useState(0);
+  const [replayPlaying, setReplayPlaying] = useState(false);
+  const [replaySpeed,   setReplaySpeed]   = useState(80); // ms per ping
+  const replayTimer = useRef(null);
+
   // Load device list
   useEffect(() => {
     api.get('/devices').then(({ data }) => {
@@ -97,6 +103,42 @@ export default function DeviceLearningPage() {
   }, [deviceId]);
 
   useEffect(() => { loadPings(); }, [loadPings]);
+
+  // ── Sorted pings for replay ─────────────────────────────────────────────────
+  const sortedPings = useMemo(() =>
+    [...pings].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp)),
+  [pings]);
+
+  // Replay controls
+  const replayStart = () => {
+    if (replayIdx >= sortedPings.length) setReplayIdx(0);
+    setReplayPlaying(true);
+  };
+  const replayPause = () => { setReplayPlaying(false); clearInterval(replayTimer.current); };
+  const replayReset = () => { replayPause(); setReplayIdx(0); };
+
+  useEffect(() => {
+    if (!replayPlaying) return;
+    replayTimer.current = setInterval(() => {
+      setReplayIdx(prev => {
+        if (prev >= sortedPings.length) { setReplayPlaying(false); return prev; }
+        return prev + 1;
+      });
+    }, replaySpeed);
+    return () => clearInterval(replayTimer.current);
+  }, [replayPlaying, replaySpeed, sortedPings.length]);
+
+  // Stats derived from replay window
+  const replayStats = useMemo(() => {
+    const window = sortedPings.slice(0, replayIdx);
+    if (window.length === 0) return null;
+    const avgLat = window.reduce((s, p) => s + p.location.lat, 0) / window.length;
+    const avgLng = window.reduce((s, p) => s + p.location.lng, 0) / window.length;
+    const hourCounts = Array(24).fill(0);
+    window.forEach(p => { hourCounts[p.hourOfDay ?? new Date(p.timestamp).getHours()]++; });
+    const confidence = Math.min(window.length / 50, 1); // 0-1 confidence based on data
+    return { avgLat, avgLng, hourCounts, confidence, count: window.length };
+  }, [replayIdx, sortedPings]);
 
   // ── Derived stats ───────────────────────────────────────────────────────────
   const stats = (() => {
@@ -458,7 +500,120 @@ export default function DeviceLearningPage() {
             </div>
           )}
 
-          {/* ── Row 5: Learning timeline ── */}
+          {/* ── Row 5: Replay Animation ── */}
+          <div className="card mb-4" style={{ border: '2px solid #e0e7ff' }}>
+            <div className="card-body">
+              <div className="d-flex align-items-center justify-content-between mb-3">
+                <h6 className="fw-bold mb-0 d-flex align-items-center gap-2">
+                  <i className="mdi mdi-play-circle text-primary" />
+                  Learning Replay — Watch the model learn
+                </h6>
+                <div className="d-flex align-items-center gap-2">
+                  <label className="small text-muted me-1">Speed:</label>
+                  <select className="form-select form-select-sm" style={{ width: 110 }} value={replaySpeed}
+                    onChange={e => setReplaySpeed(Number(e.target.value))}>
+                    <option value={200}>Slow</option>
+                    <option value={80}>Normal</option>
+                    <option value={20}>Fast</option>
+                    <option value={5}>Turbo</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Progress bar */}
+              <div className="mb-2">
+                <div className="d-flex justify-content-between small text-muted mb-1">
+                  <span>Pings learned: <strong>{replayIdx}</strong> / {sortedPings.length}</span>
+                  <span>{sortedPings.length > 0 ? ((replayIdx / sortedPings.length) * 100).toFixed(0) : 0}%</span>
+                </div>
+                <div className="progress" style={{ height: 10 }}>
+                  <div className="progress-bar"
+                    style={{ width: `${sortedPings.length > 0 ? (replayIdx / sortedPings.length) * 100 : 0}%`, background: '#4e64ff', transition: 'width .1s' }} />
+                </div>
+              </div>
+
+              {/* Controls */}
+              <div className="d-flex gap-2 mb-4">
+                {!replayPlaying
+                  ? <button className="btn btn-cp btn-sm" onClick={replayStart} disabled={sortedPings.length === 0}>
+                      <i className="mdi mdi-play me-1" />{replayIdx === 0 ? 'Start' : 'Resume'}
+                    </button>
+                  : <button className="btn btn-warning btn-sm" onClick={replayPause}>
+                      <i className="mdi mdi-pause me-1" />Pause
+                    </button>
+                }
+                <button className="btn btn-sm btn-outline-secondary" onClick={replayReset}>
+                  <i className="mdi mdi-restart me-1" />Reset
+                </button>
+              </div>
+
+              {/* Live stats */}
+              <div className="row g-3">
+                {/* Confidence meter */}
+                <div className="col-md-4">
+                  <div className="p-3 rounded-3" style={{ background: '#f8faff', border: '1px solid #e0e7ff' }}>
+                    <div className="small text-muted mb-1">Model Confidence</div>
+                    <div className="fw-bold fs-4" style={{ color: replayStats ? (replayStats.confidence > 0.7 ? '#16a34a' : replayStats.confidence > 0.3 ? '#f59e0b' : '#dc2626') : '#9ca3af' }}>
+                      {replayStats ? (replayStats.confidence * 100).toFixed(0) : 0}%
+                    </div>
+                    <div className="progress mt-1" style={{ height: 6 }}>
+                      <div className="progress-bar" style={{
+                        width: `${replayStats ? replayStats.confidence * 100 : 0}%`,
+                        background: replayStats?.confidence > 0.7 ? '#16a34a' : replayStats?.confidence > 0.3 ? '#f59e0b' : '#dc2626',
+                        transition: 'width .2s'
+                      }} />
+                    </div>
+                    <div className="small text-muted mt-1">
+                      {!replayStats ? 'No data yet'
+                        : replayStats.confidence < 0.3 ? 'Collecting data…'
+                        : replayStats.confidence < 0.7 ? 'Learning pattern…'
+                        : 'Pattern established!'}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Learned centre */}
+                <div className="col-md-4">
+                  <div className="p-3 rounded-3" style={{ background: '#f8faff', border: '1px solid #e0e7ff' }}>
+                    <div className="small text-muted mb-1">Learned Centre</div>
+                    <div className="fw-semibold" style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>
+                      {replayStats
+                        ? <>{replayStats.avgLat.toFixed(5)}<br />{replayStats.avgLng.toFixed(5)}</>
+                        : <span className="text-muted">—</span>}
+                    </div>
+                    <div className="small text-muted mt-1">Normal zone centre</div>
+                  </div>
+                </div>
+
+                {/* Latest ping time */}
+                <div className="col-md-4">
+                  <div className="p-3 rounded-3" style={{ background: '#f8faff', border: '1px solid #e0e7ff' }}>
+                    <div className="small text-muted mb-1">Latest Ping</div>
+                    <div className="fw-semibold small">
+                      {replayIdx > 0 && sortedPings[replayIdx - 1]
+                        ? new Date(sortedPings[replayIdx - 1].timestamp).toLocaleString()
+                        : <span className="text-muted">—</span>}
+                    </div>
+                    <div className="small text-muted mt-1">
+                      {replayIdx > 0 && sortedPings[replayIdx - 1]
+                        ? `Hour: ${sortedPings[replayIdx - 1].hourOfDay}:00 · ${sortedPings[replayIdx - 1].dayOfWeek}`
+                        : 'Not started'}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Hourly chart updating live */}
+                <div className="col-12">
+                  <div className="small fw-semibold mb-2">Hourly Pattern (updating live)</div>
+                  {replayStats
+                    ? <BarChart data={replayStats.hourCounts} labels={HOUR_LABELS} color="#4e64ff" height={55} />
+                    : <div className="text-muted small">Press Start to begin replay</div>}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* ── Row 6: Learning timeline ── */}
           <div className="card mb-4">
             <div className="card-body">
               <h6 className="fw-bold mb-3">

@@ -40,13 +40,24 @@ export default function MapView() {
           setZones(zoneData);
         } else {
           const { data: fallbackData } = await api.get('/risk/zones');
-          setZones(fallbackData || []);
+          // Normalize center: API returns {lat,lng} object, map needs [lat,lng] array
+          const normalized = (fallbackData || []).map(z => ({
+            ...z,
+            center: z.center?.lat != null ? [z.center.lat, z.center.lng] : z.center,
+            radius: z.radius || 50,
+          }));
+          setZones(normalized);
         }
       } catch (e) {
         console.error('Failed to load risk zones:', e);
         try {
           const { data } = await api.get('/risk/zones');
-          setZones(data || []);
+          const normalized = (data || []).map(z => ({
+            ...z,
+            center: z.center?.lat != null ? [z.center.lat, z.center.lng] : z.center,
+            radius: z.radius || 50,
+          }));
+          setZones(normalized);
         } catch (err) {
           console.error('Fallback also failed:', err);
         }
