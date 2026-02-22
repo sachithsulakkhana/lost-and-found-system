@@ -340,6 +340,154 @@ def upload_training_data():
             'message': str(e)
         }), 500
 
+# ─── Online Learning ──────────────────────────────────────────────────────────
+
+incident_buffer = []          # in-memory buffer for new incident records
+RETRAIN_THRESHOLD = 5         # retrain after every 5 new incidents
+VERSIONS_PATH = os.path.join(os.path.dirname(__file__), 'models', 'model_versions.json')
+
+
+def _load_versions():
+    if os.path.exists(VERSIONS_PATH):
+        try:
+            with open(VERSIONS_PATH, 'r') as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return []
+
+
+def _save_versions(versions):
+    os.makedirs(os.path.dirname(VERSIONS_PATH), exist_ok=True)
+    with open(VERSIONS_PATH, 'w') as f:
+        json.dump(versions, f, indent=2)
+
+
+def _do_retrain():
+    """Append buffer rows to training CSV, retrain, reload, return result dict."""
+    global incident_buffer
+
+    new_samples = len(incident_buffer)
+    if new_samples == 0:
+        return {'success': False, 'error': 'Buffer is empty'}
+
+    try:
+        # Load existing training data
+        if os.path.exists(TRAINING_DATA_PATH):
+            existing = pd.read_csv(TRAINING_DATA_PATH)
+        else:
+            existing = pd.DataFrame()
+
+        # Build rows from buffer
+        rows = []
+        for rec in incident_buffer:
+            time_str = rec.get('time', '12:00')
+            hour = int(str(time_str).split(':')[0]) if ':' in str(time_str) else 12
+            rows.append({
+                'location':           rec.get('location', 'Unknown'),
+                'itemType':           rec.get('itemType', 'Other'),
+                'crowdLevel':         rec.get('crowdLevel', 'Medium'),
+                'weather':            rec.get('weather', 'Sunny'),
+                'dayType':            rec.get('dayType', 'Weekday'),
+                'hour':               hour,
+                'incidents_last_24h': int(rec.get('lostCount', 1)),
+                'lostCount_numeric':  int(rec.get('lostCount', 1)),
+                'incident_occurred':  int(rec.get('incident_occurred', 1)),
+            })
+
+        new_df = pd.DataFrame(rows)
+        combined = pd.concat([existing, new_df], ignore_index=True) if not existing.empty else new_df
+
+        os.makedirs(os.path.dirname(TRAINING_DATA_PATH), exist_ok=True)
+        combined.to_csv(TRAINING_DATA_PATH, index=False)
+
+        total_samples = len(combined)
+
+        # Retrain
+        sys.path.append(os.path.dirname(__file__))
+        try:
+            from train_model_enhanced import main as train_main
+        except ImportError:
+            from train import main as train_main
+
+        train_main(TRAINING_DATA_PATH)
+        load_model()
+
+        # Record version
+        versions = _load_versions()
+        version_str = f"v1.0.{len(versions) + 1}"
+        versions.append({
+            'version':         version_str,
+            'timestamp':       datetime.now(SL_TZ).isoformat(),
+            'new_samples':     new_samples,
+            'total_samples':   total_samples,
+            'accuracy':        metrics.get('accuracy'),
+        })
+        _save_versions(versions)
+
+        incident_buffer = []   # clear buffer
+
+        return {
+            'success':          True,
+            'version':          version_str,
+            'new_samples_added': new_samples,
+            'total_samples':    total_samples,
+            'metrics':          {'accuracy': metrics.get('accuracy', 0)},
+        }
+
+    except Exception as e:
+        import traceback
+        return {'success': False, 'error': str(e), 'traceback': traceback.format_exc()}
+
+
+@app.route('/api/online-learning/report-lost-item', methods=['POST'])
+def ol_report_lost_item():
+    """Accept a new incident record, add to buffer, trigger retrain if threshold reached."""
+    data = request.json or {}
+    incident_buffer.append(data)
+
+    retrain_triggered = False
+    retrain_result = None
+
+    if len(incident_buffer) >= RETRAIN_THRESHOLD:
+        retrain_triggered = True
+        retrain_result = _do_retrain()
+
+    return jsonify({
+        'success': True,
+        'buffer_status': {
+            'buffer_size':       len(incident_buffer),
+            'retrain_threshold': RETRAIN_THRESHOLD,
+        },
+        'retrain_triggered': retrain_triggered,
+        'retrain_result':    retrain_result,
+    })
+
+
+@app.route('/api/online-learning/buffer-status', methods=['GET'])
+def ol_buffer_status():
+    """Return current buffer size and retrain threshold."""
+    return jsonify({
+        'buffer_size':       len(incident_buffer),
+        'retrain_threshold': RETRAIN_THRESHOLD,
+    })
+
+
+@app.route('/api/online-learning/trigger-retraining', methods=['POST'])
+def ol_trigger_retraining():
+    """Manually trigger model retraining from current buffer."""
+    result = _do_retrain()
+    return jsonify(result), 200 if result.get('success') else 500
+
+
+@app.route('/api/online-learning/versions', methods=['GET'])
+def ol_versions():
+    """Return model version history."""
+    return jsonify({'versions': _load_versions()})
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+
 if __name__ == '__main__':
     print("="*70)
     print("ML PREDICTION SERVICE")
@@ -357,6 +505,10 @@ if __name__ == '__main__':
     print(f"   - GET  /api/model/info - Model information")
     print(f"   - POST /api/train - Train/retrain model")
     print(f"   - POST /api/upload/training-data - Upload training CSV")
+    print(f"   - POST /api/online-learning/report-lost-item - Add incident to buffer")
+    print(f"   - GET  /api/online-learning/buffer-status - Buffer size/threshold")
+    print(f"   - POST /api/online-learning/trigger-retraining - Manual retrain")
+    print(f"   - GET  /api/online-learning/versions - Version history")
     print("\n")
 
     app.run(host='0.0.0.0', port=port, debug=True)
