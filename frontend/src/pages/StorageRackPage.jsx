@@ -2,17 +2,7 @@ import { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import api from '../services/api';
 
-const CATEGORIES = ['Electronics', 'Personal', 'Documents', 'Keys', 'Bags', 'Other'];
 const TOTAL_SLOTS = 20;
-
-const catIcon = (cat) => {
-  if (cat === 'Electronics') return 'mdi-laptop';
-  if (cat === 'Personal')    return 'mdi-account-box';
-  if (cat === 'Documents')   return 'mdi-file-document';
-  if (cat === 'Keys')        return 'mdi-key';
-  if (cat === 'Bags')        return 'mdi-bag-personal';
-  return 'mdi-package-variant';
-};
 
 const statusColor = (s) => {
   if (s === 'STORED')    return { bg: '#f0fdf4', border: '#86efac', text: '#16a34a' };
@@ -23,30 +13,18 @@ const statusColor = (s) => {
 
 export default function StorageRackPage() {
   const [items,   setItems]   = useState([]);
-  const [zones,   setZones]   = useState([]);
   const [loading, setLoading] = useState(false);
-  const [addOpen, setAddOpen] = useState(false);
-  const [addSlot, setAddSlot] = useState(null);
-  const [form,    setForm]    = useState({ itemName: '', category: 'Electronics', description: '', zoneId: '' });
-  const [saving,  setSaving]  = useState(false);
   const [filter,  setFilter]  = useState('ALL'); // ALL | STORED | RETRIEVED | LOST
 
   useEffect(() => {
-    fetchAll();
+    fetchItems();
   }, []);
 
-  const fetchAll = async () => {
+  const fetchItems = async () => {
     setLoading(true);
     try {
-      const [itemsRes, zonesRes] = await Promise.all([
-        api.get('/stored-items'),
-        api.get('/risk/zones'),
-      ]);
-      setItems(itemsRes.data || []);
-      setZones(zonesRes.data || []);
-      if ((zonesRes.data || []).length > 0 && !form.zoneId) {
-        setForm(p => ({ ...p, zoneId: zonesRes.data[0].zoneId }));
-      }
+      const res = await api.get('/stored-items');
+      setItems(res.data || []);
     } catch {
       toast.error('Failed to load storage data');
     } finally {
@@ -55,49 +33,11 @@ export default function StorageRackPage() {
   };
 
   // Assign slot numbers: item 0 → slot 1, item 1 → slot 2 ...
-  // Sort by storageDate ascending so slot numbers are stable
   const sortedItems = [...items].sort((a, b) => new Date(a.storageDate || a.createdAt) - new Date(b.storageDate || b.createdAt));
 
   // Build slot map: slotNum → item
   const slotMap = {};
   sortedItems.forEach((item, i) => { slotMap[i + 1] = item; });
-
-  const handleOpenAdd = (slotNum) => {
-    setAddSlot(slotNum);
-    setForm({ itemName: '', category: 'Electronics', description: '', zoneId: zones[0]?.zoneId || '' });
-    setAddOpen(true);
-  };
-
-  const handleStore = async () => {
-    if (!form.itemName || !form.zoneId) { toast.error('Item name and zone required'); return; }
-    setSaving(true);
-    try {
-      await api.post('/stored-items', form);
-      toast.success(`Stored in Storage ${addSlot}`);
-      setAddOpen(false);
-      fetchAll();
-    } catch (e) {
-      toast.error(e?.response?.data?.error || 'Failed to store item');
-    } finally { setSaving(false); }
-  };
-
-  const handleRetrieve = async (id, slotNum) => {
-    if (!window.confirm(`Retrieve item from Storage ${slotNum}?`)) return;
-    try {
-      await api.put(`/stored-items/${id}/retrieve`);
-      toast.success('Item retrieved');
-      fetchAll();
-    } catch { toast.error('Failed to retrieve'); }
-  };
-
-  const handleDelete = async (id, slotNum) => {
-    if (!window.confirm(`Remove item from Storage ${slotNum}?`)) return;
-    try {
-      await api.delete(`/stored-items/${id}`);
-      toast.success('Item removed');
-      fetchAll();
-    } catch { toast.error('Failed to remove'); }
-  };
 
   const occupied  = sortedItems.filter(i => i.status === 'STORED').length;
   const retrieved = sortedItems.filter(i => i.status === 'RETRIEVED').length;
@@ -124,7 +64,7 @@ export default function StorageRackPage() {
             {TOTAL_SLOTS} slots · {occupied} occupied · {TOTAL_SLOTS - sortedItems.length} free
           </div>
         </div>
-        <button className="btn btn-light border" onClick={fetchAll} disabled={loading}>
+        <button className="btn btn-light border" onClick={fetchItems} disabled={loading}>
           <i className={`mdi mdi-refresh ${loading ? 'mdi-spin' : ''}`} />
         </button>
       </div>
@@ -188,7 +128,7 @@ export default function StorageRackPage() {
                       </div>
                       {item ? (
                         <span className="badge" style={{ background: col.text + '20', color: col.text, fontSize: '0.7rem' }}>
-                          {item.status}
+                          {item.status?.toUpperCase()}
                         </span>
                       ) : (
                         <span className="badge bg-light text-muted" style={{ fontSize: '0.7rem' }}>EMPTY</span>
@@ -197,10 +137,7 @@ export default function StorageRackPage() {
 
                     {item ? (
                       <>
-                        <div className="d-flex align-items-center gap-2 mb-1">
-                          <i className={`mdi ${catIcon(item.category)}`} style={{ color: col.text, fontSize: 18 }} />
-                          <span className="fw-semibold text-truncate" title={item.itemName}>{item.itemName}</span>
-                        </div>
+                        <div className="fw-semibold text-truncate mb-1" title={item.itemName}>{item.itemName}</div>
                         <div className="text-muted small mb-1">{item.category}</div>
                         {item.description && (
                           <div className="text-muted small text-truncate mb-2" title={item.description}>
@@ -216,47 +153,11 @@ export default function StorageRackPage() {
                             <i className="mdi mdi-map-marker me-1" />{item.zoneId.name}
                           </div>
                         )}
-
-                        {/* Actions */}
-                        {item.status === 'STORED' && (
-                          <div className="d-flex gap-1 mt-2">
-                            <button
-                              className="btn btn-sm btn-success flex-fill"
-                              style={{ fontSize: '0.72rem', padding: '3px 6px' }}
-                              onClick={() => handleRetrieve(item._id, slot)}
-                            >
-                              <i className="mdi mdi-check me-1" />Retrieve
-                            </button>
-                            <button
-                              className="btn btn-sm btn-outline-danger"
-                              style={{ fontSize: '0.72rem', padding: '3px 6px' }}
-                              onClick={() => handleDelete(item._id, slot)}
-                            >
-                              <i className="mdi mdi-delete" />
-                            </button>
-                          </div>
-                        )}
-                        {item.status !== 'STORED' && (
-                          <button
-                            className="btn btn-sm btn-outline-secondary w-100 mt-2"
-                            style={{ fontSize: '0.72rem' }}
-                            onClick={() => handleDelete(item._id, slot)}
-                          >
-                            <i className="mdi mdi-delete me-1" />Remove
-                          </button>
-                        )}
                       </>
                     ) : (
                       <div className="d-flex flex-column align-items-center justify-content-center py-3">
-                        <i className="mdi mdi-plus-circle-outline" style={{ fontSize: 32, color: '#d1d5db' }} />
+                        <i className="mdi mdi-inbox" style={{ fontSize: 32, color: '#d1d5db' }} />
                         <div className="text-muted small mt-1">Empty</div>
-                        <button
-                          className="btn btn-sm btn-cp mt-2"
-                          style={{ fontSize: '0.75rem' }}
-                          onClick={() => handleOpenAdd(slot)}
-                        >
-                          Store Item
-                        </button>
                       </div>
                     )}
                   </div>
@@ -266,58 +167,7 @@ export default function StorageRackPage() {
           })}
         </div>
       )}
-
-      {/* Add item modal */}
-      {addOpen && (
-        <div className="modal d-block" style={{ background: 'rgba(0,0,0,.5)' }} onClick={e => e.target === e.currentTarget && setAddOpen(false)}>
-          <div className="modal-dialog modal-dialog-centered">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">
-                  <i className="mdi mdi-package-variant me-2 text-primary" />
-                  Store Item — Storage {addSlot}
-                </h5>
-                <button className="btn-close" onClick={() => setAddOpen(false)} />
-              </div>
-              <div className="modal-body">
-                <div className="mb-3">
-                  <label className="form-label fw-semibold">Item Name *</label>
-                  <input className="form-control" placeholder="e.g. iPhone 14" value={form.itemName}
-                    onChange={e => setForm(p => ({ ...p, itemName: e.target.value }))} />
-                </div>
-                <div className="mb-3">
-                  <label className="form-label fw-semibold">Category</label>
-                  <select className="form-select" value={form.category}
-                    onChange={e => setForm(p => ({ ...p, category: e.target.value }))}>
-                    {CATEGORIES.map(c => <option key={c}>{c}</option>)}
-                  </select>
-                </div>
-                <div className="mb-3">
-                  <label className="form-label fw-semibold">Description</label>
-                  <textarea className="form-control" rows={2} placeholder="Optional notes…" value={form.description}
-                    onChange={e => setForm(p => ({ ...p, description: e.target.value }))} />
-                </div>
-                <div className="mb-3">
-                  <label className="form-label fw-semibold">Zone / Location *</label>
-                  <select className="form-select" value={form.zoneId}
-                    onChange={e => setForm(p => ({ ...p, zoneId: e.target.value }))}>
-                    <option value="">— Select zone —</option>
-                    {zones.map(z => <option key={z.zoneId} value={z.zoneId}>{z.name}</option>)}
-                  </select>
-                </div>
-              </div>
-              <div className="modal-footer">
-                <button className="btn btn-secondary" onClick={() => setAddOpen(false)}>Cancel</button>
-                <button className="btn btn-cp" onClick={handleStore} disabled={saving}>
-                  {saving
-                    ? <><span className="spinner-border spinner-border-sm me-1" />Storing…</>
-                    : <><i className="mdi mdi-content-save me-1" />Store in Slot {addSlot}</>}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
+

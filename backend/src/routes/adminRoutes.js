@@ -95,6 +95,42 @@ router.delete('/zones/:id', async (req, res) => {
   }
 });
 
+router.put('/zones/:id/toggle-closure', async (req, res) => {
+  try {
+    const zone = await Zone.findById(req.params.id);
+    if (!zone) {
+      return res.status(404).json({ error: 'Zone not found' });
+    }
+
+    zone.isClosed = !zone.isClosed;
+    zone.closedAt = zone.isClosed ? new Date() : null;
+    await zone.save();
+
+    res.json({
+      message: zone.isClosed ? 'Zone closed' : 'Zone reopened',
+      zone
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.get('/zones/:id/closure', async (req, res) => {
+  try {
+    const zone = await Zone.findById(req.params.id);
+    if (!zone) {
+      return res.status(404).json({ error: 'Zone not found' });
+    }
+
+    res.json({
+      isClosed: zone.isClosed,
+      closedAt: zone.closedAt
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 router.get('/closures', async (req, res) => {
   try {
     const closures = await ClosureEvent.find()

@@ -12,6 +12,8 @@ const zoneSchema = new mongoose.Schema({
   },
   radius: { type: Number, default: 50 },
   isActive: { type: Boolean, default: true },
+  isClosed: { type: Boolean, default: false },
+  closedAt: { type: Date, default: null },
   totalSlots: { type: Number, default: 10 },
   availableSlots: { type: Number, default: 10 },
   slotBookings: [{

@@ -47,6 +47,7 @@ export default function RiskDashboardPage() {
 
   // --- Risk Zones tab state ---
   const [heatmapData, setHeatmapData] = useState(null);
+  const [zones, setZones] = useState([]); // zone list with isClosed
   const [selectedZone, setSelectedZone] = useState(null);
   const [locationDetails, setLocationDetails] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -71,8 +72,9 @@ export default function RiskDashboardPage() {
   useEffect(() => {
     loadHeatmap();
     loadStatistics();
+    loadZones();
     if (!autoRefresh) return undefined;
-    const interval = setInterval(() => { loadHeatmap(); loadStatistics(); }, 30000);
+    const interval = setInterval(() => { loadHeatmap(); loadStatistics(); loadZones(); }, 30000);
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoRefresh]);
@@ -97,6 +99,26 @@ export default function RiskDashboardPage() {
       setLoading(false);
     }
   };
+
+  const loadZones = async () => {
+    try {
+      const response = await api.get('/risk/zones');
+      setZones(response.data || []);
+    } catch (error) {
+      console.warn('Failed to load zones:', error?.message);
+    }
+  };
+
+  const toggleZoneClosure = useCallback(async (zoneId, zoneName) => {
+    try {
+      const response = await api.put(`/admin/zones/${zoneId}/toggle-closure`);
+      toast.success(response.data.message);
+      loadZones(); // Reload zones list
+      loadHeatmap(); // Reload heatmap to refresh map display
+    } catch (error) {
+      toast.error(error?.response?.data?.error || 'Failed to toggle zone closure');
+    }
+  }, []);
 
   const loadLocationDetails = async (location) => {
     try {
@@ -391,23 +413,52 @@ export default function RiskDashboardPage() {
                     <Pill tone="success" icon="mdi-check-circle-outline">Low {groupedByRisk.LOW.length}</Pill>
                   </div>
                   <div className="list-group list-group-flush" style={{ maxHeight: 520, overflow: 'auto' }}>
-                    {(heatmapData?.locations || []).map((loc) => (
-                      <button
-                        key={loc.location}
-                        type="button"
-                        className={`list-group-item list-group-item-action d-flex align-items-center justify-content-between ${selectedZone?.location === loc.location ? 'active' : ''}`}
-                        onClick={() => setSelectedZone(loc)}
-                        style={{ border: 0, borderRadius: 12, marginBottom: 10 }}
-                      >
-                        <div>
-                          <div className="fw-semibold">{loc.location}</div>
-                          <div className={`small ${selectedZone?.location === loc.location ? 'text-white-50' : 'text-muted'}`}>
-                            Risk Score: {loc.riskScore?.toFixed(2) || '0.00'}%
+                    {(heatmapData?.locations || []).map((loc) => {
+                      const zone = zones.find(z => z.name === loc.location);
+                      return (
+                        <button
+                          key={loc.location}
+                          type="button"
+                          className={`list-group-item list-group-item-action d-flex align-items-center justify-content-between ${selectedZone?.location === loc.location ? 'active' : ''}`}
+                          onClick={() => setSelectedZone(loc)}
+                          style={{ border: 0, borderRadius: 12, marginBottom: 10, opacity: zone?.isClosed ? 0.6 : 1 }}
+                        >
+                          <div className="flex-grow-1">
+                            <div className="fw-semibold">{loc.location}</div>
+                            <div className={`small ${selectedZone?.location === loc.location ? 'text-white-50' : 'text-muted'}`}>
+                              {zone?.isClosed ? (
+                                <>
+                                  <i className="mdi mdi-lock-outline me-1" />
+                                  Closed - Risk: 0%
+                                </>
+                              ) : (
+                                <>
+                                  Risk Score: {loc.riskScore?.toFixed(2) || '0.00'}%
+                                </>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                        <Pill tone={riskTone(loc.riskLevel)} icon="mdi-speedometer">{loc.riskLevel}</Pill>
-                      </button>
-                    ))}
+                          <div className="d-flex gap-2 align-items-center">
+                            <Pill tone={zone?.isClosed ? 'secondary' : riskTone(loc.riskLevel)} icon="mdi-speedometer">
+                              {zone?.isClosed ? 'CLOSED' : loc.riskLevel}
+                            </Pill>
+                            {isAdmin && (
+                              <button
+                                type="button"
+                                className={`btn btn-sm ${zone?.isClosed ? 'btn-success' : 'btn-warning'}`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleZoneClosure(zone?._id, loc.location);
+                                }}
+                                title={zone?.isClosed ? 'Reopen zone' : 'Close zone'}
+                              >
+                                <i className={`mdi ${zone?.isClosed ? 'mdi-lock-open-outline' : 'mdi-lock-outline'}`} />
+                              </button>
+                            )}
+                          </div>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               </div>

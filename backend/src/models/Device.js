@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 
 const deviceSchema = new mongoose.Schema({
   ownerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  ownerPhone: { type: String, default: '' }, // Phone number for SMS reminders
   name: { type: String, required: true },
   identifier: { type: String, default: '' },
   macAddress: { type: String, required: true, unique: true },

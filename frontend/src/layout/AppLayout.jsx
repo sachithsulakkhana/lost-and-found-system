@@ -30,11 +30,9 @@ export default function AppLayout({ children }) {
     const student = [
       { label: 'Dashboard', to: '/dashboard', icon: 'mdi-view-dashboard' },
       { label: 'Risk Dashboard', to: '/risk-dashboard', icon: 'mdi-map-marker-radius' },
-      { label: 'Zone Booking', to: '/zone-booking', icon: 'mdi-map' },
       { label: 'My Devices', to: '/devices', icon: 'mdi-devices' },
       { label: 'Device Monitoring', to: '/monitoring', icon: 'mdi-eye' },
       { label: 'Learning Insights', to: '/learning',   icon: 'mdi-brain' },
-      { label: 'Storage Rack',      to: '/storage',    icon: 'mdi-locker-multiple' },
       { label: 'Calendar', to: '/calendar', icon: 'mdi-calendar-month' },
       { label: 'Alerts', to: '/alerts', icon: 'mdi-bell-alert-outline' },
       { label: 'Reminders', to: '/reminders', icon: 'mdi-bell-ring-outline' },

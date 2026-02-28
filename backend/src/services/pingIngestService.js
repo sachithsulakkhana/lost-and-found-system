@@ -1,9 +1,11 @@
 const Device = require('../models/Device');
 const DevicePing = require('../models/DevicePing');
 const Alert = require('../models/Alert');
+const SmsReminder = require('../models/SmsReminder');
 const zoneService = require('./zoneService');
 const mlService = require('./mlService');
 const wsService = require('./wsService');
+const { sendSMS, formatPhoneNumber, validatePhoneNumber } = require('./smsService');
 
 function haversineMeters(lat1, lon1, lat2, lon2) {
   const R = 6371000;
@@ -137,6 +139,30 @@ async function ingestPing(payload, { source = 'http' } = {}) {
         location: { lat, lng },
         timestamp: new Date()
       });
+
+      // Send SMS reminder if device owner has phone number
+      if (device.ownerPhone && validatePhoneNumber(device.ownerPhone)) {
+        try {
+          const phoneE164 = formatPhoneNumber(device.ownerPhone);
+          const smsMessage = `⚠️ Alert: Unusual activity detected on device "${device.name}" at ${new Date().toLocaleTimeString()}. Anomaly score: ${(anomalyScore * 100).toFixed(0)}%`;
+
+          const smsResult = await sendSMS(phoneE164, smsMessage);
+
+          // Log the SMS reminder
+          await SmsReminder.create({
+            userId: device.ownerId,
+            message: smsMessage,
+            phone: phoneE164,
+            scheduledFor: new Date(),
+            sentAt: new Date(),
+            status: smsResult.success ? 'SENT' : 'FAILED'
+          });
+
+          console.log(`✅ SMS reminder sent to ${phoneE164} for device ${device.name}`);
+        } catch (smsError) {
+          console.error(`❌ Failed to send SMS reminder: ${smsError.message}`);
+        }
+      }
     }
   }
 

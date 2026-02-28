@@ -67,6 +67,8 @@ export default function DeviceLearningPage() {
   const [devices, setDevices]   = useState([]);
   const [deviceId, setDeviceId] = useState('');
   const [pings, setPings]       = useState([]);
+  const [allDeviceAnomalies, setAllDeviceAnomalies] = useState([]); // all devices' anomalies
+  const [showAllDevices, setShowAllDevices] = useState(false); // toggle to show all devices
   const [loading, setLoading]   = useState(false);
 
   // Live calculator state
@@ -83,11 +85,23 @@ export default function DeviceLearningPage() {
 
   // Load device list
   useEffect(() => {
-    api.get('/devices').then(({ data }) => {
-      const list = Array.isArray(data) ? data : [];
-      setDevices(list);
-      if (list.length > 0) setDeviceId(list[0]._id);
-    }).catch(() => {});
+    const loadDevices = async () => {
+      try {
+        const response = await api.get('/devices');
+        console.log('✅ Devices API response:', response.data);
+        const list = Array.isArray(response.data) ? response.data : [];
+        console.log(`✅ Parsed ${list.length} devices`);
+        setDevices(list);
+        if (list.length > 0 && !deviceId) {
+          setDeviceId(list[0]._id);
+          console.log(`✅ Set initial device to: ${list[0].name}`);
+        }
+      } catch (error) {
+        console.error('❌ Failed to load devices:', error.message || error);
+        setDevices([]);
+      }
+    };
+    loadDevices();
   }, []);
 
   // Load pings for selected device
@@ -98,9 +112,20 @@ export default function DeviceLearningPage() {
       const { data } = await api.get(`/location/history/${deviceId}?limit=600`);
       const valid = (Array.isArray(data) ? data : []).filter(p => p.valid && p.location?.lat);
       setPings(valid);
+
+      // Also load all devices' anomalies for comparison if toggled
+      if (showAllDevices) {
+        try {
+          const allRes = await api.get('/alerts?type=ANOMALY');
+          const anomalies = Array.isArray(allRes.data) ? allRes.data : [];
+          setAllDeviceAnomalies(anomalies.slice(0, 50)); // limit to 50 recent
+        } catch {
+          setAllDeviceAnomalies([]);
+        }
+      }
     } catch { setPings([]); }
     finally { setLoading(false); }
-  }, [deviceId]);
+  }, [deviceId, showAllDevices]);
 
   useEffect(() => { loadPings(); }, [loadPings]);
 
@@ -201,9 +226,22 @@ export default function DeviceLearningPage() {
           <h2 className="mb-0 fw-bold d-flex align-items-center gap-2">
             <i className="mdi mdi-brain text-primary" /> Learning Insights
           </h2>
-          <div className="text-muted small">How the device learns its normal behaviour pattern</div>
+          <div className="text-muted small">
+            Device: <strong>{selectedDevice?.name || 'Select device'}</strong> • {selectedDevice?.status || 'unknown'}
+          </div>
         </div>
         <div className="d-flex gap-2 align-items-center">
+          <div className="d-flex gap-1 align-items-center">
+            <label className="form-check form-check-inline mb-0">
+              <input
+                type="checkbox"
+                className="form-check-input"
+                checked={showAllDevices}
+                onChange={(e) => setShowAllDevices(e.target.checked)}
+              />
+              <span className="form-check-label small">Show all devices</span>
+            </label>
+          </div>
           <select className="form-select form-select-sm" style={{ width: 180 }} value={deviceId} onChange={e => setDeviceId(e.target.value)}>
             {devices.map(d => <option key={d._id} value={d._id}>{d.name}</option>)}
           </select>

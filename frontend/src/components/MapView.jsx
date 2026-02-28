@@ -71,7 +71,8 @@ export default function MapView() {
     return () => clearInterval(interval);
   }, []);
 
-  const riskColor = (riskLevel) => {
+  const riskColor = (riskLevel, isClosed) => {
+    if (isClosed) return '#9ca3af';
     if (riskLevel === 'CRITICAL') return '#dc2626';
     if (riskLevel === 'HIGH') return '#ea580c';
     if (riskLevel === 'MEDIUM') return '#f59e0b';
@@ -124,26 +125,34 @@ export default function MapView() {
 
         {zones.map((zone, index) => {
           const poly = polygonPositions(zone);
-          const color = riskColor(zone.riskLevel);
+          const color = riskColor(zone.riskLevel, zone.isClosed);
+          const displayRisk = zone.isClosed ? 'CLOSED (0 RISK)' : zone.riskLevel;
 
           const popup = (
             <div style={{ minWidth: 220 }}>
               <div className="fw-bold mb-1">{zone.name}</div>
-              <div className="d-inline-flex align-items-center gap-1 px-2 py-1 rounded" style={{ background: color, color: '#fff', fontWeight: 700, fontSize: 12 }}>
-                <i className={`mdi ${riskIcon(zone.riskLevel)}`} /> {zone.riskLevel} RISK
-              </div>
+              {zone.isClosed && (
+                <div className="d-inline-flex align-items-center gap-1 px-2 py-1 rounded" style={{ background: '#9ca3af', color: '#fff', fontWeight: 700, fontSize: 12, marginBottom: 8 }}>
+                  <i className="mdi mdi-lock" /> CLOSED
+                </div>
+              )}
+              {!zone.isClosed && (
+                <div className="d-inline-flex align-items-center gap-1 px-2 py-1 rounded" style={{ background: color, color: '#fff', fontWeight: 700, fontSize: 12 }}>
+                  <i className={`mdi ${riskIcon(zone.riskLevel)}`} /> {zone.riskLevel} RISK
+                </div>
+              )}
               <div className="mt-2 small">
                 <div>
                   <i className="mdi mdi-target me-1" />
-                  Risk Score: {((zone.riskScore ?? 0) * 100).toFixed(0)}%
+                  Risk Score: {zone.isClosed ? '0%' : ((zone.riskScore ?? 0) * 100).toFixed(0) + '%'}
                 </div>
-                {zone.confidence !== undefined && (
+                {zone.confidence !== undefined && !zone.isClosed && (
                   <div className="text-muted">
                     <i className="mdi mdi-robot-outline me-1" />
                     ML Confidence: {((zone.confidence ?? 0) * 100).toFixed(0)}%
                   </div>
                 )}
-                {zone.rfPrediction !== undefined && zone.nnPrediction !== undefined && (
+                {zone.rfPrediction !== undefined && zone.nnPrediction !== undefined && !zone.isClosed && (
                   <div className="text-muted" style={{ fontSize: 11 }}>
                     <i className="mdi mdi-chart-line me-1" />
                     RF: {zone.rfPrediction} | NN: {zone.nnPrediction}
@@ -155,6 +164,12 @@ export default function MapView() {
                     Slots: {zone.availableSlots}/{zone.totalSlots}
                   </div>
                 )}
+                {zone.isClosed && zone.closedAt && (
+                  <div className="text-muted" style={{ fontSize: 11 }}>
+                    <i className="mdi mdi-calendar me-1" />
+                    Closed: {new Date(zone.closedAt).toLocaleDateString()}
+                  </div>
+                )}
               </div>
             </div>
           );
@@ -164,7 +179,7 @@ export default function MapView() {
               <Polygon
                 key={`poly-${index}`}
                 positions={poly}
-                pathOptions={{ color, fillColor: color, fillOpacity: 0.15, weight: 2 }}
+                pathOptions={{ color, fillColor: color, fillOpacity: zone.isClosed ? 0.08 : 0.15, weight: 2, dashArray: zone.isClosed ? '5,5' : null }}
               >
                 <Tooltip sticky>{zone.name}</Tooltip>
                 <Popup>{popup}</Popup>
@@ -178,7 +193,7 @@ export default function MapView() {
                 key={`circle-${index}`}
                 center={[zone.center[0], zone.center[1]]}
                 radius={zone.radius}
-                pathOptions={{ color, fillColor: color, fillOpacity: 0.15, weight: 2 }}
+                pathOptions={{ color, fillColor: color, fillOpacity: zone.isClosed ? 0.08 : 0.15, weight: 2, dashArray: zone.isClosed ? '5,5' : null }}
               >
                 <Tooltip sticky>{zone.name}</Tooltip>
                 <Popup>{popup}</Popup>
