@@ -28,26 +28,22 @@ function generateRandomMac() {
 
 router.post('/', async (req, res) => {
   try {
-    const { macAddress: _ignore, ...body } = req.body;
+    const { macAddress, ...body } = req.body;
+
+    // Use provided MAC address or generate random one
+    const finalMacAddress = macAddress && macAddress.trim()
+      ? macAddress.toUpperCase()
+      : generateRandomMac();
+
     const device = await Device.create({
       ...body,
-      macAddress: generateRandomMac(),
+      macAddress: finalMacAddress,
       ownerId: req.user._id
     });
     res.status(201).json(device);
   } catch (error) {
     if (error.code === 11000 && error.keyPattern?.macAddress) {
-      try {
-        const { macAddress: _ig, ...retryBody } = req.body;
-        const device = await Device.create({
-          ...retryBody,
-          macAddress: generateRandomMac(),
-          ownerId: req.user._id
-        });
-        return res.status(201).json(device);
-      } catch (retryError) {
-        return res.status(500).json({ error: retryError.message });
-      }
+      return res.status(400).json({ error: 'This MAC address is already registered' });
     }
     res.status(500).json({ error: error.message });
   }

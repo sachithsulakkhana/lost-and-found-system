@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'react-toastify';
 import api from '../services/api';
+import { getDeviceInfo } from '../services/deviceHelper';
 
 function Badge({ text, tone = 'secondary', icon }) {
   const cls = useMemo(() => {
@@ -50,6 +51,7 @@ export default function DevicesPage() {
     identifier: '',
     manufacturer: '',
     model: '',
+    macAddress: '',
   });
 
   const steps = [
@@ -94,12 +96,21 @@ export default function DevicesPage() {
 
   const onSubmit = async () => {
     try {
+      // Validate MAC address format if provided
+      if (form.macAddress.trim()) {
+        const macRegex = /^([0-9A-F]{2}:){5}([0-9A-F]{2})$/i;
+        if (!macRegex.test(form.macAddress.trim())) {
+          toast.error('Invalid MAC address format. Use format: XX:XX:XX:XX:XX:XX');
+          return;
+        }
+      }
+
       await simulateVerification();
       await api.post('/devices', form);
       toast.success('Device registered successfully. ML learning period started.');
       setOpen(false);
       setVerifying(false);
-      setForm({ name: '', identifier: '', manufacturer: '', model: '' });
+      setForm({ name: '', identifier: '', manufacturer: '', model: '', macAddress: '' });
       fetchDevices();
     } catch (e) {
       setVerifying(false);
@@ -117,7 +128,17 @@ export default function DevicesPage() {
           <div className="text-muted small">Register devices to enable monitoring and ML-assisted risk scoring.</div>
         </div>
 
-        <button className="btn btn-cp" onClick={() => setOpen(true)}>
+        <button className="btn btn-cp" onClick={() => {
+          const deviceInfo = getDeviceInfo();
+          setForm({
+            name: deviceInfo.deviceType,
+            identifier: deviceInfo.model,
+            manufacturer: deviceInfo.manufacturer,
+            model: deviceInfo.model,
+            macAddress: ''
+          });
+          setOpen(true);
+        }}>
           <i className="mdi mdi-plus me-1" /> Add Device
         </button>
       </div>
@@ -220,16 +241,33 @@ export default function DevicesPage() {
             <input className="form-control" value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} />
           </div>
           <div className="col-md-6">
+            <label className="form-label fw-semibold">MAC Address <span className="text-muted small">(Optional)</span></label>
+            <input
+              className="form-control font-monospace"
+              placeholder="e.g., A4:C3:F0:2D:11:9E"
+              value={form.macAddress}
+              onChange={(e) => setForm((p) => ({ ...p, macAddress: e.target.value.toUpperCase() }))}
+            />
+            <small className="text-muted d-block mt-2">
+              <strong>📱 How to find your device's MAC address:</strong><br/>
+              <strong>iPhone/iPad:</strong> Settings → General → About → WiFi Address<br/>
+              <strong>Android:</strong> Settings → About → Status → WiFi MAC Address<br/>
+              <strong>Windows:</strong> cmd → ipconfig /all → Physical Address<br/>
+              <strong>Mac/Linux:</strong> Terminal → ifconfig | grep "ether"<br/>
+              <em>Leave blank to auto-generate a unique identifier</em>
+            </small>
+          </div>
+          <div className="col-md-6">
             <label className="form-label fw-semibold">Identifier</label>
-            <input className="form-control" value={form.identifier} onChange={(e) => setForm((p) => ({ ...p, identifier: e.target.value }))} />
+            <input className="form-control" placeholder="e.g., iPhone 14, Galaxy S23" value={form.identifier} onChange={(e) => setForm((p) => ({ ...p, identifier: e.target.value }))} />
           </div>
           <div className="col-md-6">
             <label className="form-label fw-semibold">Manufacturer</label>
-            <input className="form-control" value={form.manufacturer} onChange={(e) => setForm((p) => ({ ...p, manufacturer: e.target.value }))} />
+            <input className="form-control" placeholder="e.g., Apple, Samsung" value={form.manufacturer} onChange={(e) => setForm((p) => ({ ...p, manufacturer: e.target.value }))} />
           </div>
           <div className="col-md-6">
             <label className="form-label fw-semibold">Model</label>
-            <input className="form-control" value={form.model} onChange={(e) => setForm((p) => ({ ...p, model: e.target.value }))} />
+            <input className="form-control" placeholder="e.g., A2846, SM-S911B" value={form.model} onChange={(e) => setForm((p) => ({ ...p, model: e.target.value }))} />
           </div>
         </div>
 
