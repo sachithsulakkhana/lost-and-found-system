@@ -130,18 +130,16 @@ export default function DevicesPage() {
           <h2 className="mb-0 fw-bold d-flex align-items-center gap-2">
             <i className="mdi mdi-devices text-primary" /> My Devices
           </h2>
-          <div className="text-muted small">Register devices to enable monitoring and ML-assisted risk scoring.</div>
+          <div className="text-muted small">
+            <i className="mdi mdi-information-outline me-1" />
+            Devices are automatically detected and enrolled. They appear here once you start using the app.
+          </div>
         </div>
+      </div>
 
-        <button className="btn btn-cp" onClick={() => {
-          const deviceInfo = getAutoDeviceInfo();
-          setForm({
-            name: deviceInfo.name
-          });
-          setOpen(true);
-        }}>
-          <i className="mdi mdi-plus me-1" /> Add Device
-        </button>
+      <div className="alert alert-info mb-4">
+        <i className="mdi mdi-auto-fix me-2" />
+        <strong>Automatic Device Detection Enabled:</strong> Your devices are being automatically detected and registered. No manual setup required!
       </div>
 
       <div className="card">
@@ -169,8 +167,9 @@ export default function DevicesPage() {
                 ) : devices.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="py-5 text-center text-muted">
-                      <i className="mdi mdi-devices fs-2 d-block mb-2 opacity-50" />
-                      No devices registered yet. Add your first device to get started.
+                      <i className="mdi mdi-devices-off fs-2 d-block mb-2 opacity-50" />
+                      No devices detected yet.<br />
+                      <small>Use the app on your device and it will automatically appear here.</small>
                     </td>
                   </tr>
                 ) : (

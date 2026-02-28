@@ -7,6 +7,7 @@ const ClosureEvent = require('../models/ClosureEvent');
 const { requireAuth, requireApproved } = require('../middleware/auth');
 const zoneService = require('../services/zoneService');
 const mlService = require('../services/mlService');
+const { getOrCreateDevice } = require('../services/autoEnrollmentService');
 
 router.use(requireAuth);
 router.use(requireApproved);
@@ -92,19 +93,35 @@ router.put('/:id/preference', async (req, res) => {
 
 router.post('/ping', async (req, res) => {
   try {
-    const { deviceId, lat, lng, speed } = req.body;
-    
-    const device = await Device.findById(deviceId);
-    if (!device) {
-      return res.status(404).json({ error: 'Device not found' });
+    const { deviceId, deviceFingerprint, deviceInfo, lat, lng, speed } = req.body;
+
+    let device;
+
+    // Support both old (deviceId) and new (deviceFingerprint) methods
+    if (deviceFingerprint) {
+      // Auto-enroll device if not exists
+      device = await getOrCreateDevice(req.user._id, deviceFingerprint, deviceInfo || {});
+    } else if (deviceId) {
+      // Old method - lookup by ID
+      device = await Device.findById(deviceId);
+      if (!device) {
+        return res.status(404).json({ error: 'Device not found' });
+      }
+    } else {
+      return res.status(400).json({ error: 'Missing deviceId or deviceFingerprint' });
     }
-    
+
+    // Verify device belongs to user
+    if (device.ownerId.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ error: 'Device does not belong to user' });
+    }
+
     const zone = await zoneService.findZoneByLocation(lat, lng);
     const now = new Date();
     const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    
+
     const pingData = {
-      deviceId,
+      deviceId: device._id,
       location: { lat, lng },
       zoneId: zone?._id,
       speed,
@@ -113,7 +130,7 @@ router.post('/ping', async (req, res) => {
       isWithinPreference: zone ? zoneService.isWithinPreference(device, now, zone._id) : false,
       wasClosedZone: false
     };
-    
+
     if (device.status === 'LEARNING') {
       const learningDays = Math.floor((now - device.learningStartDate) / (1000 * 60 * 60 * 24));
       if (learningDays >= 7) {
@@ -121,14 +138,14 @@ router.post('/ping', async (req, res) => {
         await device.save();
       }
     }
-    
+
     if (device.status === 'ACTIVE') {
-      const anomalyScore = await mlService.calculateAnomalyScore(deviceId, pingData);
+      const anomalyScore = await mlService.calculateAnomalyScore(device._id, pingData);
       pingData.anomalyScore = anomalyScore;
-      
+
       if (mlService.shouldGenerateAlert(anomalyScore)) {
         await Alert.create({
-          deviceId,
+          deviceId: device._id,
           type: 'ANOMALY',
           severity: 'HIGH',
           message: `Unusual activity detected (score: ${anomalyScore.toFixed(2)})`,
@@ -136,10 +153,10 @@ router.post('/ping', async (req, res) => {
         });
       }
     }
-    
+
     const ping = await DevicePing.create(pingData);
-    
-    res.json({ ping, deviceStatus: device.status });
+
+    res.json({ ping, deviceStatus: device.status, deviceId: device._id });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

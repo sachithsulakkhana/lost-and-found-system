@@ -1,5 +1,6 @@
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useEffect, useMemo, useState } from 'react';
+import { autoEnrollDevice } from '../services/autoEnrollment';
 
 function getUser() {
   const raw = localStorage.getItem('user');
@@ -19,6 +20,10 @@ export default function AppLayout({ children }) {
 
   useEffect(() => {
     setUser(getUser());
+    // Auto-enroll device on first app load
+    autoEnrollDevice().catch(() => {
+      // Silent fail - not critical
+    });
   }, []);
 
   // Close sidebar on route change (mobile)
