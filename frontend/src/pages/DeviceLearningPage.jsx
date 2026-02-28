@@ -251,6 +251,15 @@ export default function DeviceLearningPage() {
         </div>
       </div>
 
+      {/* Debug Info */}
+      <div className="alert alert-info mb-3 p-2" style={{ fontSize: '0.85rem' }}>
+        🔍 <strong>Debug Info:</strong>
+        Token: <code>{localStorage.getItem('token') ? '✓ Present' : '✗ Missing'}</code> |
+        Devices loaded: <strong>{devices.length}</strong> |
+        Selected device: <code>{deviceId || 'None'}</code> |
+        Check browser console (F12) for detailed logs
+      </div>
+
       {loading && (
         <div className="text-center py-5 text-muted">
           <span className="spinner-border spinner-border-sm me-2" /> Loading ping history…
