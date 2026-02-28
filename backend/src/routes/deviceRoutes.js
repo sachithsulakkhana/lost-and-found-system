@@ -28,7 +28,7 @@ function generateRandomMac() {
 
 router.post('/', async (req, res) => {
   try {
-    const { macAddress, ...body } = req.body;
+    const { deviceFingerprint, macAddress, ...body } = req.body;
 
     // Use provided MAC address or generate random one
     const finalMacAddress = macAddress && macAddress.trim()
@@ -37,6 +37,7 @@ router.post('/', async (req, res) => {
 
     const device = await Device.create({
       ...body,
+      deviceFingerprint: deviceFingerprint || '',
       macAddress: finalMacAddress,
       ownerId: req.user._id
     });

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'react-toastify';
 import api from '../services/api';
-import { getDeviceInfo } from '../services/deviceHelper';
+import { getAutoDeviceInfo, getDeviceIdentifier, storeDeviceInfo } from '../services/deviceFingerprint';
 
 function Badge({ text, tone = 'secondary', icon }) {
   const cls = useMemo(() => {
@@ -48,10 +48,6 @@ export default function DevicesPage() {
   const [verifyStep, setVerifyStep] = useState(0);
   const [form, setForm] = useState({
     name: '',
-    identifier: '',
-    manufacturer: '',
-    model: '',
-    macAddress: '',
   });
 
   const steps = [
@@ -96,21 +92,30 @@ export default function DevicesPage() {
 
   const onSubmit = async () => {
     try {
-      // Validate MAC address format if provided
-      if (form.macAddress.trim()) {
-        const macRegex = /^([0-9A-F]{2}:){5}([0-9A-F]{2})$/i;
-        if (!macRegex.test(form.macAddress.trim())) {
-          toast.error('Invalid MAC address format. Use format: XX:XX:XX:XX:XX:XX');
-          return;
-        }
-      }
+      // Get auto-detected device info
+      const deviceInfo = getAutoDeviceInfo();
+      const deviceIdentifier = getDeviceIdentifier();
+
+      // Submit with auto-detected info
+      const deviceData = {
+        name: form.name || deviceInfo.name,
+        identifier: deviceInfo.name,
+        manufacturer: deviceInfo.manufacturer,
+        model: deviceInfo.model,
+        deviceFingerprint: deviceIdentifier,
+        userAgent: deviceInfo.userAgent
+      };
 
       await simulateVerification();
-      await api.post('/devices', form);
+      const response = await api.post('/devices', deviceData);
+
+      // Store device info locally for future reference
+      storeDeviceInfo(deviceIdentifier, deviceInfo);
+
       toast.success('Device registered successfully. ML learning period started.');
       setOpen(false);
       setVerifying(false);
-      setForm({ name: '', identifier: '', manufacturer: '', model: '', macAddress: '' });
+      setForm({ name: '' });
       fetchDevices();
     } catch (e) {
       setVerifying(false);
@@ -129,13 +134,9 @@ export default function DevicesPage() {
         </div>
 
         <button className="btn btn-cp" onClick={() => {
-          const deviceInfo = getDeviceInfo();
+          const deviceInfo = getAutoDeviceInfo();
           setForm({
-            name: deviceInfo.deviceType,
-            identifier: deviceInfo.model,
-            manufacturer: deviceInfo.manufacturer,
-            model: deviceInfo.model,
-            macAddress: ''
+            name: deviceInfo.name
           });
           setOpen(true);
         }}>
@@ -150,9 +151,8 @@ export default function DevicesPage() {
               <thead>
                 <tr className="text-muted small" style={{ letterSpacing: '.04em', textTransform: 'uppercase' }}>
                   <th>Device</th>
-                  <th>MAC Address</th>
+                  <th>Type / Identifier</th>
                   <th>Manufacturer</th>
-                  <th>Model</th>
                   <th>ML Status</th>
                   <th className="text-end">Status</th>
                 </tr>
@@ -160,7 +160,7 @@ export default function DevicesPage() {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={6} className="py-4">
+                    <td colSpan={5} className="py-4">
                       <div className="d-flex align-items-center gap-2 text-muted">
                         <span className="spinner-border spinner-border-sm" role="status" /> Loading…
                       </div>
@@ -168,7 +168,7 @@ export default function DevicesPage() {
                   </tr>
                 ) : devices.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="py-5 text-center text-muted">
+                    <td colSpan={5} className="py-5 text-center text-muted">
                       <i className="mdi mdi-devices fs-2 d-block mb-2 opacity-50" />
                       No devices registered yet. Add your first device to get started.
                     </td>
@@ -185,17 +185,12 @@ export default function DevicesPage() {
                             </span>
                             <div>
                               <div className="fw-semibold">{d.name}</div>
-                              <div className="text-muted small">{d.identifier || '—'}</div>
+                              <div className="text-muted small">{d.deviceFingerprint || '—'}</div>
                             </div>
                           </div>
                         </td>
-                        <td>
-                          <span className="badge bg-light text-dark border" style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace' }}>
-                            {d.macAddress || 'N/A'}
-                          </span>
-                        </td>
+                        <td>{d.identifier || d.deviceType || '—'}</td>
                         <td>{d.manufacturer || '—'}</td>
-                        <td>{d.model || '—'}</td>
                         <td>
                           {isLearning ? (
                             <Badge text="Learning" tone="warning" icon="mdi-brain" />
@@ -236,38 +231,17 @@ export default function DevicesPage() {
         }
       >
         <div className="row g-3">
-          <div className="col-md-6">
+          <div className="col-12">
             <label className="form-label fw-semibold">Device Name</label>
-            <input className="form-control" value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} />
-          </div>
-          <div className="col-md-6">
-            <label className="form-label fw-semibold">MAC Address <span className="text-muted small">(Optional)</span></label>
             <input
-              className="form-control font-monospace"
-              placeholder="e.g., A4:C3:F0:2D:11:9E"
-              value={form.macAddress}
-              onChange={(e) => setForm((p) => ({ ...p, macAddress: e.target.value.toUpperCase() }))}
+              className="form-control"
+              placeholder="e.g., My iPhone, Personal Laptop"
+              value={form.name}
+              onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
             />
             <small className="text-muted d-block mt-2">
-              <strong>📱 How to find your device's MAC address:</strong><br/>
-              <strong>iPhone/iPad:</strong> Settings → General → About → WiFi Address<br/>
-              <strong>Android:</strong> Settings → About → Status → WiFi MAC Address<br/>
-              <strong>Windows:</strong> cmd → ipconfig /all → Physical Address<br/>
-              <strong>Mac/Linux:</strong> Terminal → ifconfig | grep "ether"<br/>
-              <em>Leave blank to auto-generate a unique identifier</em>
+              Device info (type, manufacturer, model) will be automatically detected from your device.
             </small>
-          </div>
-          <div className="col-md-6">
-            <label className="form-label fw-semibold">Identifier</label>
-            <input className="form-control" placeholder="e.g., iPhone 14, Galaxy S23" value={form.identifier} onChange={(e) => setForm((p) => ({ ...p, identifier: e.target.value }))} />
-          </div>
-          <div className="col-md-6">
-            <label className="form-label fw-semibold">Manufacturer</label>
-            <input className="form-control" placeholder="e.g., Apple, Samsung" value={form.manufacturer} onChange={(e) => setForm((p) => ({ ...p, manufacturer: e.target.value }))} />
-          </div>
-          <div className="col-md-6">
-            <label className="form-label fw-semibold">Model</label>
-            <input className="form-control" placeholder="e.g., A2846, SM-S911B" value={form.model} onChange={(e) => setForm((p) => ({ ...p, model: e.target.value }))} />
           </div>
         </div>
 

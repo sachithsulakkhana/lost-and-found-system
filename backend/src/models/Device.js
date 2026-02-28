@@ -5,10 +5,12 @@ const deviceSchema = new mongoose.Schema({
   ownerPhone: { type: String, default: '' }, // Phone number for SMS reminders
   name: { type: String, required: true },
   identifier: { type: String, default: '' },
-  macAddress: { type: String, required: true, unique: true },
+  deviceFingerprint: { type: String, default: '' }, // Auto-generated unique device ID
+  macAddress: { type: String, default: '' }, // Will be auto-generated if not provided
   deviceType: { type: String, default: 'mobile' },
   manufacturer: { type: String },
   model: { type: String },
+  userAgent: { type: String, default: '' },
   preferredZoneId: { type: mongoose.Schema.Types.ObjectId, ref: 'Zone' },
   preferredTimeWindow: {
     start: String,
