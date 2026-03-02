@@ -2,6 +2,7 @@ import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useEffect, useMemo, useState } from 'react';
 import { autoEnrollDevice } from '../services/autoEnrollment';
 import api from '../services/api';
+import TheftGuard from '../components/TheftGuard';
 
 function getUser() {
   const raw = localStorage.getItem('user');
@@ -83,6 +84,8 @@ export default function AppLayout({ children }) {
 
   return (
     <div className="cp-app">
+      <TheftGuard />
+
       {/* Overlay backdrop for mobile sidebar */}
       {sidebarOpen && (
         <div className="cp-sidebar-overlay" onClick={() => setSidebarOpen(false)} />

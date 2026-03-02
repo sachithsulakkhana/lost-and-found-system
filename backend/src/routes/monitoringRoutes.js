@@ -1,8 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const DeviceActivity = require('../models/DeviceActivity');
+const DevicePing = require('../models/DevicePing');
 const Device = require('../models/Device');
+const Alert = require('../models/Alert');
 const anomalyDetectionService = require('../services/anomalyDetectionService');
+const wsService = require('../services/wsService');
 const { requireAuth } = require('../middleware/auth');
 
 router.use(requireAuth);
@@ -315,6 +318,69 @@ router.get('/stats', async (req, res) => {
       }
     });
   } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * POST /api/monitoring/wake-ping
+ * Called by TheftGuard when device screen wakes (lid open / tab visible).
+ * Compares wake location vs sleep location — fires alarm if device moved.
+ */
+router.post('/wake-ping', async (req, res) => {
+  try {
+    const { deviceId, sleepLat, sleepLng, sleepTime, wakeLat, wakeLng } = req.body;
+
+    const device = await Device.findOne({ _id: deviceId, ownerId: req.user._id });
+    if (!device) return res.status(404).json({ error: 'Device not found' });
+
+    let alarm = false;
+    let reason = 'NORMAL';
+
+    // 1. Location-change check (threshold ~55 m = 0.0005 degrees)
+    if (sleepLat != null && sleepLng != null && wakeLat != null && wakeLng != null) {
+      const dist = Math.sqrt(
+        Math.pow(wakeLat - sleepLat, 2) + Math.pow(wakeLng - sleepLng, 2)
+      );
+      if (dist > 0.0005) {
+        alarm = true;
+        reason = 'LOCATION_CHANGED';
+      }
+    }
+
+    // 2. Unusual-hour check (if no location data available)
+    if (!alarm) {
+      const recentPings = await DevicePing.find({ deviceId })
+        .sort({ timestamp: -1 })
+        .limit(100);
+
+      if (recentPings.length >= 10) {
+        const avgHour = recentPings.reduce((s, p) => s + new Date(p.timestamp).getHours(), 0) / recentPings.length;
+        const currentHour = new Date().getHours();
+        if (Math.abs(currentHour - avgHour) > 6) {
+          alarm = true;
+          reason = 'UNUSUAL_TIME';
+        }
+      }
+    }
+
+    if (alarm) {
+      await Alert.create({
+        deviceId: device._id,
+        type: 'THEFT_SUSPECTED',
+        severity: 'CRITICAL',
+        message: `Possible theft detected (${reason}) — device "${device.name}" moved while sleeping`,
+        location: wakeLat ? { lat: wakeLat, lng: wakeLng } : undefined
+      });
+
+      // Push alarm to the browser tab watching this device
+      wsService.broadcastAlarm(deviceId);
+      console.log(`🚨 THEFT ALARM sent for device ${device.name} (${reason})`);
+    }
+
+    res.json({ alarm, reason, deviceId });
+  } catch (error) {
+    console.error('wake-ping error:', error);
     res.status(500).json({ error: error.message });
   }
 });

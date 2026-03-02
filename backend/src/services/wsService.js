@@ -102,6 +102,15 @@ function broadcastPingSaved({ ping, deviceStatus, zoneName, deviceKey }) {
 }
 
 /**
+ * Send a theft alarm to the browser tab subscribed to a specific device.
+ */
+function broadcastAlarm(deviceId) {
+  broadcast('alarm', { deviceId: deviceId.toString() }, {
+    match: (meta) => meta.subscribedTo === deviceId.toString()
+  });
+}
+
+/**
  * Attach a WS-ingest handler.
  * The callback should accept the payload and return the same shape as HTTP /api/location/ping.
  */
@@ -113,5 +122,6 @@ module.exports = {
   init,
   broadcast,
   broadcastPingSaved,
+  broadcastAlarm,
   setOnPing
 };
