@@ -31,6 +31,17 @@ router.post('/', async (req, res) => {
   try {
     const { deviceFingerprint, macAddress, ...body } = req.body;
 
+    // Return existing device if fingerprint already registered for this user
+    if (deviceFingerprint) {
+      const existing = await Device.findOne({
+        ownerId: req.user._id,
+        deviceFingerprint
+      });
+      if (existing) {
+        return res.status(200).json(existing);
+      }
+    }
+
     // Use provided MAC address or generate random one
     const finalMacAddress = macAddress && macAddress.trim()
       ? macAddress.toUpperCase()

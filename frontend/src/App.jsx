@@ -1,5 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import AppLayout from './layout/AppLayout';
+import api from './services/api';
 
 import DashboardPage from './pages/DashboardPage';
 import DevicesPage from './pages/DevicesPage';
@@ -18,18 +20,51 @@ import RiskDashboardPage from './pages/RiskDashboardPage';
 import AdminBookingApprovalsPage from './pages/AdminBookingApprovalsPage';
 import DeviceLearningPage from './pages/DeviceLearningPage';
 
-function ProtectedRoute({ children }) {
-  const token = localStorage.getItem('token');
-  if (!token) return <Navigate to="/login" replace />;
+const STUDENT_EMAIL = 'student@example.com';
+const STUDENT_PASSWORD = 'student123';
+
+// Auto-login as student if no token present
+function AutoAuthRoute({ children }) {
+  const [ready, setReady] = useState(!!localStorage.getItem('token'));
+
+  useEffect(() => {
+    if (localStorage.getItem('token')) {
+      setReady(true);
+      return;
+    }
+    api.post('/auth/login', { email: STUDENT_EMAIL, password: STUDENT_PASSWORD })
+      .then(({ data }) => {
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+        setReady(true);
+      })
+      .catch(() => {
+        window.location.href = '/login';
+      });
+  }, []);
+
+  if (!ready) {
+    return (
+      <div className="d-flex align-items-center justify-content-center" style={{ minHeight: '100vh' }}>
+        <div className="spinner-border text-primary" role="status" />
+      </div>
+    );
+  }
+
   return children;
 }
 
-function WithLayout({ children }) {
-  return (
-    <ProtectedRoute>
-      <AppLayout>{children}</AppLayout>
-    </ProtectedRoute>
-  );
+// Admin routes require manual login + admin role
+function AdminRoute({ children }) {
+  const token = localStorage.getItem('token');
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  if (!token || user.role !== 'admin') return <Navigate to="/login" replace />;
+  return children;
+}
+
+function WithLayout({ children, adminOnly = false }) {
+  const Wrapper = adminOnly ? AdminRoute : AutoAuthRoute;
+  return <Wrapper><AppLayout>{children}</AppLayout></Wrapper>;
 }
 
 export default function App() {
@@ -46,15 +81,14 @@ export default function App() {
         <Route path="/alerts" element={<WithLayout><AlertsPage /></WithLayout>} />
         <Route path="/bookings" element={<WithLayout><StudentBookingsPage /></WithLayout>} />
         <Route path="/reminders" element={<WithLayout><RemindersPage /></WithLayout>} />
-
-        <Route path="/admin/users" element={<WithLayout><AdminUsersPage /></WithLayout>} />
-        <Route path="/admin/zones" element={<WithLayout><AdminZonesPage /></WithLayout>} />
-        <Route path="/admin/calendar" element={<WithLayout><AdminBookingCalendarPage /></WithLayout>} />
-        <Route path="/admin/bookings" element={<WithLayout><AdminBookingsPage /></WithLayout>} />
-        <Route path="/admin/booking-approvals" element={<WithLayout><AdminBookingApprovalsPage /></WithLayout>} />
-
-        <Route path="/learning"  element={<WithLayout><DeviceLearningPage /></WithLayout>} />
+        <Route path="/learning" element={<WithLayout><DeviceLearningPage /></WithLayout>} />
         <Route path="/risk-dashboard" element={<WithLayout><RiskDashboardPage /></WithLayout>} />
+
+        <Route path="/admin/users" element={<WithLayout adminOnly><AdminUsersPage /></WithLayout>} />
+        <Route path="/admin/zones" element={<WithLayout adminOnly><AdminZonesPage /></WithLayout>} />
+        <Route path="/admin/calendar" element={<WithLayout adminOnly><AdminBookingCalendarPage /></WithLayout>} />
+        <Route path="/admin/bookings" element={<WithLayout adminOnly><AdminBookingsPage /></WithLayout>} />
+        <Route path="/admin/booking-approvals" element={<WithLayout adminOnly><AdminBookingApprovalsPage /></WithLayout>} />
 
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />

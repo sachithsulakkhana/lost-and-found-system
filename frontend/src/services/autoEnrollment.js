@@ -12,6 +12,11 @@ import { getAutoDeviceInfo, getDeviceIdentifier, storeDeviceInfo } from './devic
  * Called once when user logs in
  */
 export async function autoEnrollDevice() {
+  // Skip if already enrolled in this session
+  if (localStorage.getItem('enrolledDeviceId')) {
+    return null;
+  }
+
   try {
     const deviceInfo = getAutoDeviceInfo();
     const deviceId = getDeviceIdentifier();
@@ -31,8 +36,9 @@ export async function autoEnrollDevice() {
 
     console.log(`✅ Device auto-enrolled: ${response.data._id}`);
 
-    // Store device info locally
+    // Store device info locally and mark enrolled
     storeDeviceInfo(deviceId, deviceInfo);
+    localStorage.setItem('enrolledDeviceId', response.data._id);
 
     return response.data;
   } catch (error) {

@@ -1,6 +1,7 @@
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useEffect, useMemo, useState } from 'react';
 import { autoEnrollDevice } from '../services/autoEnrollment';
+import api from '../services/api';
 
 function getUser() {
   const raw = localStorage.getItem('user');
@@ -17,13 +18,25 @@ export default function AppLayout({ children }) {
   const location = useLocation();
   const [user, setUser] = useState(() => getUser());
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [deviceReady, setDeviceReady] = useState(!!localStorage.getItem('enrolledDeviceId'));
 
   useEffect(() => {
     setUser(getUser());
-    // Auto-enroll device on first app load
-    autoEnrollDevice().catch(() => {
-      // Silent fail - not critical
-    });
+
+    // If not already marked enrolled, check DB (returning user from a prior session)
+    if (!localStorage.getItem('enrolledDeviceId')) {
+      api.get('/devices').then(res => {
+        if (Array.isArray(res.data) && res.data.length > 0) {
+          localStorage.setItem('enrolledDeviceId', res.data[0]._id);
+          setDeviceReady(true);
+        }
+      }).catch(() => {});
+    }
+
+    // Auto-enroll device; if a new device was created, unlock the full menu
+    autoEnrollDevice().then(device => {
+      if (device) setDeviceReady(true);
+    }).catch(() => {});
   }, []);
 
   // Close sidebar on route change (mobile)
@@ -32,16 +45,21 @@ export default function AppLayout({ children }) {
   }, [location.pathname]);
 
   const menu = useMemo(() => {
-    const student = [
+    const studentRestricted = [
+      { label: 'Device Monitoring', to: '/monitoring', icon: 'mdi-eye' },
+      { label: 'Learning Insights', to: '/learning', icon: 'mdi-brain' },
+    ];
+
+    const student = deviceReady ? [
       { label: 'Dashboard', to: '/dashboard', icon: 'mdi-view-dashboard' },
       { label: 'Risk Dashboard', to: '/risk-dashboard', icon: 'mdi-map-marker-radius' },
       { label: 'My Devices', to: '/devices', icon: 'mdi-devices' },
       { label: 'Device Monitoring', to: '/monitoring', icon: 'mdi-eye' },
-      { label: 'Learning Insights', to: '/learning',   icon: 'mdi-brain' },
+      { label: 'Learning Insights', to: '/learning', icon: 'mdi-brain' },
       { label: 'Calendar', to: '/calendar', icon: 'mdi-calendar-month' },
       { label: 'Alerts', to: '/alerts', icon: 'mdi-bell-alert-outline' },
       { label: 'Reminders', to: '/reminders', icon: 'mdi-bell-ring-outline' },
-    ];
+    ] : studentRestricted;
 
     const admin = [
       { label: 'Dashboard', to: '/dashboard', icon: 'mdi-view-dashboard' },
@@ -56,7 +74,7 @@ export default function AppLayout({ children }) {
     ];
 
     return user?.role === 'admin' ? admin : student;
-  }, [user?.role]);
+  }, [user?.role, deviceReady]);
 
   const onLogout = () => {
     localStorage.clear();

@@ -5,6 +5,7 @@ const Zone = require('../models/Zone');
 const ClosureEvent = require('../models/ClosureEvent');
 const { requireAuth, requireApproved } = require('../middleware/auth');
 const { reportLostItemToML, reportFoundItemToML } = require('../services/onlineLearningService');
+const weatherService = require('../services/weatherService');
 
 router.use(requireAuth);
 router.use(requireApproved);
@@ -75,13 +76,17 @@ router.put('/:id/retrieve', async (req, res) => {
     item.retrievalDate = new Date();
     await item.save();
 
-    // If item was lost and now found, report to ML service
+    // If item was lost and now found, report to ML service with real-time context
     if (wasLost) {
+      const [weather, crowdLevel] = await Promise.all([
+        weatherService.getCurrentWeather().catch(() => 'Sunny'),
+        Promise.resolve(weatherService.getCurrentCrowdLevel() || 'Medium')
+      ]);
       reportFoundItemToML({
         location: item.zoneId?.name || 'Unknown',
         itemType: item.category || 'Other',
-        crowdLevel: req.body.crowdLevel || 'Medium',
-        weather: req.body.weather || 'Sunny',
+        crowdLevel,
+        weather,
         timestamp: new Date().toISOString()
       });
     }
@@ -118,12 +123,16 @@ router.put('/:id/report-lost', async (req, res) => {
       message: `Item "${item.itemName}" reported as lost by ${req.user.name}`
     });
 
-    // Report to ML service for real-time model updating
+    // Report to ML service with real-time weather and crowd context
+    const [weather, crowdLevel] = await Promise.all([
+      weatherService.getCurrentWeather().catch(() => 'Sunny'),
+      Promise.resolve(weatherService.getCurrentCrowdLevel() || 'Medium')
+    ]);
     reportLostItemToML({
       location: item.zoneId?.name || 'Unknown',
       itemType: item.category || 'Other',
-      crowdLevel: req.body.crowdLevel || 'Medium',
-      weather: req.body.weather || 'Sunny',
+      crowdLevel,
+      weather,
       timestamp: new Date().toISOString()
     });
 
