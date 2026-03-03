@@ -6,7 +6,7 @@ const alertSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   type: {
     type: String,
-    enum: ['ANOMALY', 'OUT_OF_ZONE', 'UNUSUAL_TIME', 'HIGH_RISK', 'ITEM_LOST'],
+    enum: ['ANOMALY', 'OUT_OF_ZONE', 'UNUSUAL_TIME', 'HIGH_RISK', 'ITEM_LOST', 'THEFT_SUSPECTED'],
     required: true
   },
   severity: {
