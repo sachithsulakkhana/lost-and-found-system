@@ -19,6 +19,8 @@ const MIN_SLEEP_MS = 5000;
 const SIREN_DURATION_MS = 30000;
 
 function getWsUrl() {
+  // In production the WS server is on a different host than the frontend
+  if (import.meta.env.VITE_WS_URL) return import.meta.env.VITE_WS_URL;
   const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   return `${proto}//${window.location.host}/ws`;
 }

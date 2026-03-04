@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    volumes:
+      - mongo_data:/data/db
+    # Not exposed externally — only reachable by other containers
+
+  ml-service:
+    build: ./ml-service
+    restart: unless-stopped
+    ports:
+      - "5003:5001"
+    volumes:
+      - ./ml-service/models:/app/models   # persist trained model files
+      - ./ml-service/data:/app/data
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    ports:
+      - "5002:5000"
+    environment:
+      - NODE_ENV=production
+      - MONGODB_URI=mongodb://mongo:27017/lost-and-found
+      - ML_SERVICE_URL=http://ml-service:5001
+      - FRONTEND_URL=https://frontend.cloudixpro.cloud
+      - JWT_SECRET=${JWT_SECRET}
+      - VAPID_PUBLIC_KEY=${VAPID_PUBLIC_KEY}
+      - VAPID_PRIVATE_KEY=${VAPID_PRIVATE_KEY}
+      - VAPID_EMAIL=${VAPID_EMAIL}
+      - SMS_PROVIDER=${SMS_PROVIDER:-mock}
+    depends_on:
+      - mongo
+      - ml-service
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: https://apitesting.cloudixpro.cloud/api
+        VITE_WS_URL: wss://apitesting.cloudixpro.cloud/ws
+    restart: unless-stopped
+    ports:
+      - "81:80"
+    depends_on:
+      - backend
+
+volumes:
+  mongo_data:
