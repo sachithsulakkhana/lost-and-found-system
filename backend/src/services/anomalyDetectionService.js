@@ -3,6 +3,8 @@ const Device = require('../models/Device');
 const Alert = require('../models/Alert');
 const wsService = require('./wsService');
 const pushService = require('./pushService');
+const { sendSMS, formatPhoneNumber } = require('./smsService');
+const User = require('../models/User');
 
 // Retrain after every N new (post-learning) activities
 const RETRAIN_EVERY = 50;
@@ -321,6 +323,14 @@ class AnomalyDetectionService {
       // Web Push: reaches the owner even when the browser is closed
       pushService.sendAlarmToOwner(device.ownerId, device?.name ?? 'Unknown', 'BEHAVIORAL_ANOMALY')
         .catch(err => console.error('Push notification error:', err));
+      // SMS: notify owner's registered phone number
+      User.findById(device.ownerId).then(owner => {
+        if (owner?.phone) {
+          const phone = formatPhoneNumber(owner.phone);
+          const msg = `⚠️ ANOMALY ALERT: Unusual activity detected on your device "${device?.name ?? 'Unknown'}" (score: ${(score * 100).toFixed(1)}%). Check your Lost & Found app.`;
+          sendSMS(phone, msg).catch(err => console.error('SMS error:', err));
+        }
+      }).catch(() => {});
 
       console.log(`📢 Anomaly alert sent: ${alert._id}`);
       return alert;

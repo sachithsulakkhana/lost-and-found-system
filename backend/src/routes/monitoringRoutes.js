@@ -7,6 +7,8 @@ const Alert = require('../models/Alert');
 const anomalyDetectionService = require('../services/anomalyDetectionService');
 const wsService = require('../services/wsService');
 const pushService = require('../services/pushService');
+const { sendSMS, formatPhoneNumber } = require('../services/smsService');
+const User = require('../models/User');
 const { requireAuth } = require('../middleware/auth');
 
 router.use(requireAuth);
@@ -380,6 +382,14 @@ router.post('/wake-ping', async (req, res) => {
       pushService.sendAlarmToOwner(device.ownerId, device.name, reason).catch(err =>
         console.error('Push notification error:', err)
       );
+      // SMS: notify owner's phone number
+      User.findById(device.ownerId).then(owner => {
+        if (owner?.phone) {
+          const phone = formatPhoneNumber(owner.phone);
+          const msg = `🚨 THEFT ALERT: Your device "${device.name}" was moved while sleeping! Reason: ${reason}. Check your Lost & Found app immediately.`;
+          sendSMS(phone, msg).catch(err => console.error('SMS error:', err));
+        }
+      }).catch(() => {});
       console.log(`🚨 THEFT ALARM sent for device ${device.name} (${reason})`);
     }
 
