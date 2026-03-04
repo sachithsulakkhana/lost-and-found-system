@@ -7,9 +7,6 @@ services:
     restart: unless-stopped
     ports:
       - "5001:5001"
-    volumes:
-      - ./ml-service/models:/app/models   # persist trained model files
-      - ./ml-service/data:/app/data
 
   backend:
     build: ./backend
