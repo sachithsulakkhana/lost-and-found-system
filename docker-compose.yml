@@ -13,7 +13,7 @@ services:
     build: ./ml-service
     restart: unless-stopped
     ports:
-      - "5003:5001"
+      - "5001:5001"
     volumes:
       - ./ml-service/models:/app/models   # persist trained model files
       - ./ml-service/data:/app/data
@@ -22,7 +22,7 @@ services:
     build: ./backend
     restart: unless-stopped
     ports:
-      - "5002:5000"
+      - "5000:5000"
     environment:
       - NODE_ENV=production
       - MONGODB_URI=mongodb://mongo:27017/lost-and-found
@@ -45,7 +45,7 @@ services:
         VITE_WS_URL: wss://apitesting.cloudixpro.cloud/ws
     restart: unless-stopped
     ports:
-      - "81:80"
+      - "3000:80"
     depends_on:
       - backend
 
