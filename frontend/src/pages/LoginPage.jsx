@@ -16,8 +16,7 @@ export default function LoginPage() {
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
       toast.success('Login successful!');
-      const role = data.user?.role;
-      navigate(role === 'admin' ? '/admin/users' : '/dashboard', { replace: true });
+      navigate('/dashboard', { replace: true });
     } catch (error) {
       toast.error(error.response?.data?.error || 'Invalid credentials');
       setLoading(false);

@@ -2,13 +2,6 @@ version: '3.8'
 
 services:
 
-  mongo:
-    image: mongo:7
-    restart: unless-stopped
-    volumes:
-      - mongo_data:/data/db
-    # Not exposed externally — only reachable by other containers
-
   ml-service:
     build: ./ml-service
     restart: unless-stopped
@@ -25,7 +18,7 @@ services:
       - "5000:5000"
     environment:
       - NODE_ENV=production
-      - MONGODB_URI=mongodb://mongo:27017/lost-and-found
+      - MONGODB_URI=${MONGODB_URI}
       - ML_SERVICE_URL=http://ml-service:5001
       - FRONTEND_URL=https://frontend.cloudixpro.cloud
       - JWT_SECRET=${JWT_SECRET}
@@ -34,7 +27,6 @@ services:
       - VAPID_EMAIL=${VAPID_EMAIL}
       - SMS_PROVIDER=${SMS_PROVIDER:-mock}
     depends_on:
-      - mongo
       - ml-service
 
   frontend:
@@ -48,6 +40,3 @@ services:
       - "80"
     depends_on:
       - backend
-
-volumes:
-  mongo_data:
