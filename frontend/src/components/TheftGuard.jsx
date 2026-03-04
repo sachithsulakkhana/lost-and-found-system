@@ -131,6 +131,13 @@ export default function TheftGuard() {
         const loc = await getLocation();
         sleepRef.current = { lat: loc?.lat, lng: loc?.lng, time: Date.now() };
 
+        // Notify owner's other devices (phone) that this device went to sleep
+        try {
+          await api.post('/monitoring/sleep-ping', { deviceId });
+        } catch (e) {
+          console.debug('[TheftGuard] sleep-ping skipped:', e.message);
+        }
+
       } else {
         // --- Lid opening ---
         const sleep = sleepRef.current;
@@ -167,6 +174,32 @@ export default function TheftGuard() {
 
     document.addEventListener('visibilitychange', handleVisibility);
     return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [deviceId, startSiren]);
+
+  // Heartbeat ping every 1 minute while the screen is on (lid-open theft coverage)
+  useEffect(() => {
+    if (!deviceId) return;
+
+    const HEARTBEAT_INTERVAL = 60 * 1000; // 1 minute
+
+    const sendHeartbeat = async () => {
+      if (document.hidden) return; // skip if screen is off — wake-ping covers that
+      const loc = await getLocation();
+      if (!loc) return;
+      try {
+        const { data } = await api.post('/monitoring/heartbeat', {
+          deviceId,
+          lat: loc.lat,
+          lng: loc.lng,
+        });
+        if (data.alarm) startSiren();
+      } catch (e) {
+        console.debug('[TheftGuard] heartbeat skipped:', e.message);
+      }
+    };
+
+    const timer = setInterval(sendHeartbeat, HEARTBEAT_INTERVAL);
+    return () => clearInterval(timer);
   }, [deviceId, startSiren]);
 
   // Alarm overlay

@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e \":*)",
+      "Bash(node seed-win26deb1.js --clear)"
+    ]
+  }
+}

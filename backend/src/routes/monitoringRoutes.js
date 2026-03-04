@@ -400,4 +400,99 @@ router.post('/wake-ping', async (req, res) => {
   }
 });
 
+/**
+ * POST /api/monitoring/heartbeat
+ * Sent by TheftGuard every 5 minutes while the app is open (lid-open coverage).
+ * Compares current GPS with the last saved DevicePing — alarms if moved >55 m.
+ * Also saves a new DevicePing so the reference point stays up-to-date.
+ */
+router.post('/heartbeat', async (req, res) => {
+  try {
+    const { deviceId, lat, lng } = req.body;
+    if (!deviceId || lat == null || lng == null) {
+      return res.status(400).json({ error: 'deviceId, lat and lng are required' });
+    }
+
+    const device = await Device.findOne({ _id: deviceId, ownerId: req.user._id });
+    if (!device) return res.status(404).json({ error: 'Device not found' });
+
+    let alarm = false;
+    let reason = 'NORMAL';
+
+    // Compare against the last saved ping location
+    const lastPing = await DevicePing.findOne({ deviceId }).sort({ timestamp: -1 });
+
+    if (lastPing?.location?.lat != null && lastPing?.location?.lng != null) {
+      const dist = Math.sqrt(
+        Math.pow(lat - lastPing.location.lat, 2) +
+        Math.pow(lng - lastPing.location.lng, 2)
+      );
+      if (dist > 0.0005) {
+        alarm = true;
+        reason = 'LOCATION_CHANGED';
+      }
+    }
+
+    // Save current position as the new reference ping
+    await DevicePing.create({
+      deviceId,
+      location: { lat, lng },
+      source: 'http'
+    });
+
+    if (alarm) {
+      await Alert.create({
+        deviceId: device._id,
+        type: 'THEFT_SUSPECTED',
+        severity: 'CRITICAL',
+        message: `Possible theft detected (heartbeat) — device "${device.name}" moved while screen was on`,
+        location: { lat, lng }
+      });
+
+      wsService.broadcastAlarmToOwner(device.ownerId, deviceId);
+      pushService.sendAlarmToOwner(device.ownerId, device.name, reason).catch(err =>
+        console.error('Push notification error:', err)
+      );
+      User.findById(device.ownerId).then(owner => {
+        if (owner?.phone) {
+          const phone = formatPhoneNumber(owner.phone);
+          const msg = `🚨 THEFT ALERT: Your device "${device.name}" moved while the screen was on! Check your Lost & Found app.`;
+          sendSMS(phone, msg).catch(err => console.error('SMS error:', err));
+        }
+      }).catch(() => {});
+
+      console.log(`🚨 HEARTBEAT ALARM — device ${device.name} moved while open`);
+    }
+
+    res.json({ alarm, reason, deviceId });
+  } catch (error) {
+    console.error('heartbeat error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * POST /api/monitoring/sleep-ping
+ * Called by TheftGuard when the device lid closes / tab hides.
+ * Sends a quiet push notification to the owner's other devices.
+ */
+router.post('/sleep-ping', async (req, res) => {
+  try {
+    const { deviceId } = req.body;
+    if (!deviceId) return res.status(400).json({ error: 'deviceId required' });
+
+    const device = await Device.findOne({ _id: deviceId, ownerId: req.user._id });
+    if (!device) return res.status(404).json({ error: 'Device not found' });
+
+    pushService.sendSleepAlert(device.ownerId, device.name).catch(err =>
+      console.error('Sleep alert push error:', err)
+    );
+
+    res.json({ ok: true });
+  } catch (error) {
+    console.error('sleep-ping error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;
