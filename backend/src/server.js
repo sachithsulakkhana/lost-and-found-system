@@ -25,6 +25,7 @@ const locationRoutes = require('./routes/locationRoutes');
 const csvUploadRoutes = require('./routes/csvUploadRoutes');
 const zoneBookingRoutes = require('./routes/zoneBookingRoutes');
 const mlTrainingRoutes = require('./routes/mlTrainingRoutes');
+const pushRoutes = require('./routes/pushRoutes');
 
 const app = express();
 
@@ -65,6 +66,7 @@ app.use('/api/location', locationRoutes);
 app.use('/api/csv', csvUploadRoutes);
 app.use('/api/zone-bookings', zoneBookingRoutes);
 app.use('/api/ml-training', mlTrainingRoutes);
+app.use('/api/push', pushRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

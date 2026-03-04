@@ -55,6 +55,7 @@ function buildSiren(ctx) {
 
 export default function TheftGuard() {
   const deviceId = localStorage.getItem('enrolledDeviceId');
+  const userId = (() => { try { return JSON.parse(localStorage.getItem('user') || '{}').id; } catch { return null; } })();
   const sleepRef = useRef(null);    // { lat, lng, time }
   const sirenRef = useRef(null);    // { osc, ctx, timer }
   const wsRef    = useRef(null);
@@ -95,7 +96,7 @@ export default function TheftGuard() {
       wsRef.current = ws;
 
       ws.onopen = () => {
-        ws.send(JSON.stringify({ type: 'subscribe', payload: { deviceId } }));
+        ws.send(JSON.stringify({ type: 'subscribe', payload: { deviceId, userId } }));
       };
 
       ws.onmessage = (event) => {

@@ -50,6 +50,7 @@ function init(httpServer, { path = '/ws' } = {}) {
       if (type === 'subscribe') {
         const meta = clientMeta.get(ws) || {};
         meta.subscribedTo = payload?.macAddress || payload?.deviceId || null;
+        meta.userId = payload?.userId || null;  // owner identity for cross-device alarm
         clientMeta.set(ws, meta);
         return safeSend(ws, { type: 'ack', payload: { ok: true, subscribedTo: meta.subscribedTo }, requestId });
       }
@@ -111,6 +112,21 @@ function broadcastAlarm(deviceId) {
 }
 
 /**
+ * Send a theft alarm to ALL open sessions belonging to the device owner.
+ * Matches on the device tab itself OR any other tab the owner has open
+ * (e.g. their phone, another laptop) that subscribed with the same userId.
+ */
+function broadcastAlarmToOwner(ownerId, deviceId) {
+  const ownerStr = ownerId.toString();
+  const deviceStr = deviceId.toString();
+  broadcast('alarm', { deviceId: deviceStr }, {
+    match: (meta) =>
+      meta.subscribedTo === deviceStr ||  // the stolen device's own tab
+      meta.userId === ownerStr            // owner's other open sessions
+  });
+}
+
+/**
  * Attach a WS-ingest handler.
  * The callback should accept the payload and return the same shape as HTTP /api/location/ping.
  */
@@ -123,5 +139,6 @@ module.exports = {
   broadcast,
   broadcastPingSaved,
   broadcastAlarm,
+  broadcastAlarmToOwner,
   setOnPing
 };

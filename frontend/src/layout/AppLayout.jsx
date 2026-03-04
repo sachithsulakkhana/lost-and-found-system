@@ -14,6 +14,42 @@ function getUser() {
   }
 }
 
+// Register service worker and subscribe to Web Push so alarms reach the owner
+// even when this tab is closed (e.g. on their phone or another laptop).
+async function registerPush() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+
+  try {
+    // 1. Register the service worker
+    const reg = await navigator.serviceWorker.register('/sw.js');
+
+    // 2. Ask notification permission (no-op if already granted/denied)
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') return;
+
+    // 3. Fetch VAPID public key from backend
+    const { data } = await api.get('/push/vapid-public-key');
+    const publicKey = data.publicKey;
+
+    // Convert base64 VAPID key to Uint8Array
+    const base64 = publicKey.replace(/-/g, '+').replace(/_/g, '/');
+    const raw = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+
+    // 4. Subscribe (browser generates endpoint + key pair)
+    const subscription = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: raw
+    });
+
+    // 5. Save subscription on backend (linked to this user account)
+    await api.post('/push/subscribe', { subscription: subscription.toJSON() });
+    console.log('[Push] Subscribed for theft notifications');
+  } catch (err) {
+    // Non-critical — silently ignore (incognito mode, blocked permissions, etc.)
+    console.debug('[Push] Setup skipped:', err.message);
+  }
+}
+
 export default function AppLayout({ children }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -38,6 +74,9 @@ export default function AppLayout({ children }) {
     autoEnrollDevice().then(device => {
       if (device) setDeviceReady(true);
     }).catch(() => {});
+
+    // Register Web Push so theft alarms reach the owner even when app is closed
+    registerPush();
   }, []);
 
   // Close sidebar on route change (mobile)

@@ -2,6 +2,7 @@ const DeviceActivity = require('../models/DeviceActivity');
 const Device = require('../models/Device');
 const Alert = require('../models/Alert');
 const wsService = require('./wsService');
+const pushService = require('./pushService');
 
 // Retrain after every N new (post-learning) activities
 const RETRAIN_EVERY = 50;
@@ -315,8 +316,11 @@ class AnomalyDetectionService {
         location: activityData.location
       });
 
-      // Real-time push → TheftGuard WebSocket listener in the browser
-      wsService.broadcastAlarm(deviceId);
+      // WebSocket: wakes any open browser tab of the owner
+      wsService.broadcastAlarmToOwner(device.ownerId, deviceId);
+      // Web Push: reaches the owner even when the browser is closed
+      pushService.sendAlarmToOwner(device.ownerId, device?.name ?? 'Unknown', 'BEHAVIORAL_ANOMALY')
+        .catch(err => console.error('Push notification error:', err));
 
       console.log(`📢 Anomaly alert sent: ${alert._id}`);
       return alert;

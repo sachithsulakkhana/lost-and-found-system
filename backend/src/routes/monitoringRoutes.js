@@ -6,6 +6,7 @@ const Device = require('../models/Device');
 const Alert = require('../models/Alert');
 const anomalyDetectionService = require('../services/anomalyDetectionService');
 const wsService = require('../services/wsService');
+const pushService = require('../services/pushService');
 const { requireAuth } = require('../middleware/auth');
 
 router.use(requireAuth);
@@ -373,8 +374,12 @@ router.post('/wake-ping', async (req, res) => {
         location: wakeLat ? { lat: wakeLat, lng: wakeLng } : undefined
       });
 
-      // Push alarm to the browser tab watching this device
-      wsService.broadcastAlarm(deviceId);
+      // WebSocket: wakes any open browser tab of the owner
+      wsService.broadcastAlarmToOwner(device.ownerId, deviceId);
+      // Web Push: reaches the owner even when the browser is closed
+      pushService.sendAlarmToOwner(device.ownerId, device.name, reason).catch(err =>
+        console.error('Push notification error:', err)
+      );
       console.log(`🚨 THEFT ALARM sent for device ${device.name} (${reason})`);
     }
 
