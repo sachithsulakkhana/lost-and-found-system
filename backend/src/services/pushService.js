@@ -1,17 +1,23 @@
 const webpush = require('web-push');
 const PushSubscription = require('../models/PushSubscription');
 
-webpush.setVapidDetails(
-  process.env.VAPID_EMAIL,
-  process.env.VAPID_PUBLIC_KEY,
-  process.env.VAPID_PRIVATE_KEY
-);
+const VAPID_READY = !!(process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY && process.env.VAPID_EMAIL);
+if (VAPID_READY) {
+  webpush.setVapidDetails(
+    process.env.VAPID_EMAIL,
+    process.env.VAPID_PUBLIC_KEY,
+    process.env.VAPID_PRIVATE_KEY
+  );
+} else {
+  console.warn('⚠️  VAPID keys not set — Web Push notifications disabled');
+}
 
 /**
  * Send a theft alarm push notification to all registered devices of an owner.
  * Stale/expired subscriptions are cleaned up automatically.
  */
 async function sendAlarmToOwner(ownerId, deviceName, reason) {
+  if (!VAPID_READY) return;
   const subs = await PushSubscription.find({ userId: ownerId });
   if (!subs.length) return;
 
@@ -51,6 +57,7 @@ async function sendAlarmToOwner(ownerId, deviceName, reason) {
  * Non-intrusive — no requireInteraction, so it auto-dismisses on the phone.
  */
 async function sendSleepAlert(ownerId, deviceName) {
+  if (!VAPID_READY) return;
   const subs = await PushSubscription.find({ userId: ownerId });
   if (!subs.length) return;
 
