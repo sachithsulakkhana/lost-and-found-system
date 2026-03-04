@@ -31,6 +31,7 @@ const deviceSchema = new mongoose.Schema({
     timestamp: Date
   },
   monitoringEnabled: { type: Boolean, default: true },
+  modelData: { type: mongoose.Schema.Types.Mixed },   // serialized IsolationForest for persistence
   createdAt: { type: Date, default: Date.now }
 });
 
