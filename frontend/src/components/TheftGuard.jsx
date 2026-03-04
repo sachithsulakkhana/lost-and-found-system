@@ -131,11 +131,21 @@ export default function TheftGuard() {
         const loc = await getLocation();
         sleepRef.current = { lat: loc?.lat, lng: loc?.lng, time: Date.now() };
 
-        // Notify owner's other devices (phone) that this device went to sleep
-        try {
-          await api.post('/monitoring/sleep-ping', { deviceId });
-        } catch (e) {
-          console.debug('[TheftGuard] sleep-ping skipped:', e.message);
+        // Notify owner's other devices (phone) that this device went to sleep.
+        // Use native fetch + keepalive:true so the browser completes the request
+        // even as the page is being hidden (axios gets cancelled by page unload).
+        {
+          const token = localStorage.getItem('token');
+          const base  = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+          fetch(`${base}/monitoring/sleep-ping`, {
+            method: 'POST',
+            keepalive: true,
+            headers: {
+              'Content-Type': 'application/json',
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            body: JSON.stringify({ deviceId }),
+          }).catch(() => {});
         }
 
       } else {
