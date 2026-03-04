@@ -16,7 +16,8 @@ export default function LoginPage() {
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
       toast.success('Login successful!');
-      navigate('/admin/users', { replace: true });
+      const role = data.user?.role;
+      navigate(role === 'admin' ? '/admin/users' : '/dashboard', { replace: true });
     } catch (error) {
       toast.error(error.response?.data?.error || 'Invalid credentials');
       setLoading(false);
@@ -29,14 +30,14 @@ export default function LoginPage() {
         <div className="row g-0">
           <div className="col-lg-6 d-none d-lg-block">
             <div className="cp-auth-left h-100">
-              <h2 className="fw-bold mb-3">Admin Access</h2>
+              <h2 className="fw-bold mb-3">Lost &amp; Found</h2>
               <p className="opacity-90 mb-4">
-                Sign in with your admin credentials to manage users, zones, and approvals.
+                Sign in to report lost items, manage devices, and track alerts on the SLIIT campus.
               </p>
               <div className="d-flex gap-2 align-items-center">
                 <span className="badge bg-light text-dark">Lost &amp; Found</span>
                 <span className="badge bg-light text-dark">SLIIT</span>
-                <span className="badge bg-light text-dark">Admin Panel</span>
+                <span className="badge bg-light text-dark">Campus Security</span>
               </div>
             </div>
           </div>
@@ -45,8 +46,8 @@ export default function LoginPage() {
             <div className="cp-auth-right">
               <div className="d-flex align-items-center justify-content-between mb-4">
                 <div>
-                  <div className="text-muted small">Administration</div>
-                  <h3 className="fw-bold mb-0">Admin Sign In</h3>
+                  <div className="text-muted small">Welcome back</div>
+                  <h3 className="fw-bold mb-0">Sign In</h3>
                 </div>
                 <div className="d-flex align-items-center gap-2">
                   <span className="logo-dot" style={{ width: 10, height: 10, borderRadius: 999, background: 'linear-gradient(90deg, var(--cp-primary), var(--cp-primary-2))' }} />
@@ -88,13 +89,13 @@ export default function LoginPage() {
                       Signing in...
                     </span>
                   ) : (
-                    'SIGN IN AS ADMIN'
+                    'SIGN IN'
                   )}
                 </button>
               </form>
 
               <div className="text-center text-muted small mt-4">
-                This login is for administrators only.
+                Use your SLIIT Lost &amp; Found account credentials.
               </div>
             </div>
           </div>
