@@ -65,6 +65,9 @@ export default function TheftGuard() {
 
   const startSiren = useCallback(() => {
     if (sirenRef.current) return; // already sounding
+    // Check if owner dismissed alarms locally (designated device suppression)
+    const suppressed = localStorage.getItem(`alarmSuppressed_${deviceId}`);
+    if (suppressed && Number(suppressed) > Date.now()) return;
     try {
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
       const osc = buildSiren(ctx);
@@ -76,7 +79,7 @@ export default function TheftGuard() {
     }
   }, []);
 
-  const stopSiren = useCallback(() => {
+  const stopSiren = useCallback((ownerDismiss = false) => {
     if (!sirenRef.current) return;
     try {
       sirenRef.current.osc.stop();
@@ -85,7 +88,15 @@ export default function TheftGuard() {
     } catch {}
     sirenRef.current = null;
     setAlarm(false);
-  }, []);
+
+    // If the owner explicitly dismissed the alarm, tell the backend to suppress
+    // future alarms on this device for 4 hours (only takes effect if device is designated)
+    if (ownerDismiss && deviceId) {
+      api.post('/monitoring/dismiss-alarm', { deviceId }).catch(() => {});
+      // Also store local suppression so the overlay won't re-appear in this session
+      localStorage.setItem(`alarmSuppressed_${deviceId}`, String(Date.now() + 4 * 60 * 60 * 1000));
+    }
+  }, [deviceId]);
 
   // WebSocket — subscribe to this device; listen for alarm command
   useEffect(() => {
@@ -243,7 +254,7 @@ export default function TheftGuard() {
         <br />An alert has been sent to your account.
       </p>
       <button
-        onClick={stopSiren}
+        onClick={() => stopSiren(true)}
         style={{
           padding: '14px 48px', fontSize: '1rem', fontWeight: 700,
           borderRadius: 8, border: 'none', background: '#fff',
@@ -252,6 +263,9 @@ export default function TheftGuard() {
       >
         I AM THE OWNER — STOP ALARM
       </button>
+      <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.8rem', marginTop: 12 }}>
+        If this is your designated device, dismissing will suppress future alerts for 4 hours.
+      </p>
     </div>
   );
 }

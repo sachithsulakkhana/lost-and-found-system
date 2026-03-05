@@ -43,6 +43,7 @@ export default function DevicesPage() {
   const [devices, setDevices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
+  const [togglingDesignated, setTogglingDesignated] = useState(null);
   const [verifying, setVerifying] = useState(false);
   const [verifyProgress, setVerifyProgress] = useState(0);
   const [verifyStep, setVerifyStep] = useState(0);
@@ -87,6 +88,19 @@ export default function DevicesPage() {
       }
       // eslint-disable-next-line no-await-in-loop
       await new Promise((r) => setTimeout(r, 220));
+    }
+  };
+
+  const toggleDesignated = async (deviceId) => {
+    setTogglingDesignated(deviceId);
+    try {
+      const { data } = await api.put(`/devices/${deviceId}/designated`);
+      setDevices((prev) => prev.map((d) => d._id === deviceId ? { ...d, isDesignated: data.isDesignated } : d));
+      toast.success(data.isDesignated ? 'Marked as designated device — alarms suppressed after owner dismiss' : 'Designation removed');
+    } catch {
+      toast.error('Failed to update device');
+    } finally {
+      setTogglingDesignated(null);
     }
   };
 
@@ -152,13 +166,14 @@ export default function DevicesPage() {
                   <th>Type / Identifier</th>
                   <th>Manufacturer</th>
                   <th>ML Status</th>
+                  <th>Designated</th>
                   <th className="text-end">Status</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={5} className="py-4">
+                    <td colSpan={6} className="py-4">
                       <div className="d-flex align-items-center gap-2 text-muted">
                         <span className="spinner-border spinner-border-sm" role="status" /> Loading…
                       </div>
@@ -166,7 +181,7 @@ export default function DevicesPage() {
                   </tr>
                 ) : devices.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="py-5 text-center text-muted">
+                    <td colSpan={6} className="py-5 text-center text-muted">
                       <i className="mdi mdi-devices-off fs-2 d-block mb-2 opacity-50" />
                       No devices detected yet.<br />
                       <small>Use the app on your device and it will automatically appear here.</small>
@@ -196,6 +211,18 @@ export default function DevicesPage() {
                           ) : (
                             <Badge text="Ready" tone="success" icon="mdi-check" />
                           )}
+                        </td>
+                        <td>
+                          <button
+                            className={`btn btn-sm ${d.isDesignated ? 'btn-success' : 'btn-outline-secondary'}`}
+                            onClick={() => toggleDesignated(d._id)}
+                            disabled={togglingDesignated === d._id}
+                            title={d.isDesignated ? 'Designated: owner dismiss will suppress future alarms. Click to remove.' : 'Mark as designated owner device'}
+                            style={{ whiteSpace: 'nowrap' }}
+                          >
+                            <i className={`mdi ${d.isDesignated ? 'mdi-shield-check' : 'mdi-shield-outline'} me-1`} />
+                            {togglingDesignated === d._id ? '...' : d.isDesignated ? 'Designated' : 'Set Designated'}
+                          </button>
                         </td>
                         <td className="text-end">
                           <Badge

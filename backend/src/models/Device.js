@@ -31,6 +31,8 @@ const deviceSchema = new mongoose.Schema({
     timestamp: Date
   },
   monitoringEnabled: { type: Boolean, default: true },
+  isDesignated: { type: Boolean, default: false },        // owner's trusted/primary device
+  alarmSuppressedUntil: { type: Date, default: null },    // suppress theft alarms until this time (owner dismissed)
   modelData: { type: mongoose.Schema.Types.Mixed },   // serialized IsolationForest for persistence
   createdAt: { type: Date, default: Date.now }
 });

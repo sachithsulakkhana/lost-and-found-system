@@ -62,6 +62,23 @@ router.post('/', async (req, res) => {
   }
 });
 
+// Toggle designated (trusted owner) status for a device
+router.put('/:id/designated', async (req, res) => {
+  try {
+    const device = await Device.findOne({ _id: req.params.id, ownerId: req.user._id });
+    if (!device) return res.status(404).json({ error: 'Device not found' });
+
+    device.isDesignated = !device.isDesignated;
+    // Clear suppression when undesignating
+    if (!device.isDesignated) device.alarmSuppressedUntil = null;
+    await device.save();
+
+    res.json({ isDesignated: device.isDesignated });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 router.put('/:id/preference', async (req, res) => {
   try {
     const { preferredZoneId, preferredTimeWindow, allowedDays } = req.body;

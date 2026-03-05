@@ -326,6 +326,34 @@ router.get('/stats', async (req, res) => {
 });
 
 /**
+ * POST /api/monitoring/dismiss-alarm
+ * Owner dismissed the theft notification for a designated device.
+ * Suppresses future alarms for 4 hours so repeat moves are not flagged as theft.
+ */
+router.post('/dismiss-alarm', async (req, res) => {
+  try {
+    const { deviceId } = req.body;
+    if (!deviceId) return res.status(400).json({ error: 'deviceId required' });
+
+    const device = await Device.findOne({ _id: deviceId, ownerId: req.user._id });
+    if (!device) return res.status(404).json({ error: 'Device not found' });
+
+    if (!device.isDesignated) {
+      return res.status(400).json({ error: 'Device is not marked as a designated device' });
+    }
+
+    // Suppress theft alarms for 4 hours
+    device.alarmSuppressedUntil = new Date(Date.now() + 4 * 60 * 60 * 1000);
+    await device.save();
+
+    res.json({ ok: true, suppressedUntil: device.alarmSuppressedUntil });
+  } catch (error) {
+    console.error('dismiss-alarm error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
  * POST /api/monitoring/wake-ping
  * Called by TheftGuard when device screen wakes (lid open / tab visible).
  * Compares wake location vs sleep location — fires alarm if device moved.
@@ -336,6 +364,11 @@ router.post('/wake-ping', async (req, res) => {
 
     const device = await Device.findOne({ _id: deviceId, ownerId: req.user._id });
     if (!device) return res.status(404).json({ error: 'Device not found' });
+
+    // If this is a designated device and the owner recently dismissed an alarm, skip
+    if (device.isDesignated && device.alarmSuppressedUntil && device.alarmSuppressedUntil > new Date()) {
+      return res.json({ alarm: false, reason: 'OWNER_DISMISSED', suppressedUntil: device.alarmSuppressedUntil, deviceId });
+    }
 
     let alarm = false;
     let reason = 'NORMAL';
@@ -415,6 +448,11 @@ router.post('/heartbeat', async (req, res) => {
 
     const device = await Device.findOne({ _id: deviceId, ownerId: req.user._id });
     if (!device) return res.status(404).json({ error: 'Device not found' });
+
+    // If this is a designated device and the owner recently dismissed an alarm, skip
+    if (device.isDesignated && device.alarmSuppressedUntil && device.alarmSuppressedUntil > new Date()) {
+      return res.json({ alarm: false, reason: 'OWNER_DISMISSED', suppressedUntil: device.alarmSuppressedUntil, deviceId });
+    }
 
     let alarm = false;
     let reason = 'NORMAL';
