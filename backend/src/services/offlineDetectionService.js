@@ -14,35 +14,34 @@ const Device = require('../models/Device');
 const Alert  = require('../models/Alert');
 const wsService = require('./wsService');
 
-const OFFLINE_THRESHOLD_MS = 5 * 60 * 1000;   // 5 minutes offline → suspect
-const COOLDOWN_MS          = 5 * 60 * 1000;   // don't re-alert within 5 min
-const CHECK_INTERVAL_MS    = 2 * 60 * 1000;   // check every 2 minutes
+const OFFLINE_THRESHOLD_MS = 5  * 60 * 1000;  // 5 minutes offline → suspect
+const RECENTLY_SEEN_MS     = 2  * 60 * 60 * 1000; // only alert if device was seen within 2 hours
+const COOLDOWN_MS          = 5  * 60 * 1000;  // don't re-alert within 5 min
+const CHECK_INTERVAL_MS    = 2  * 60 * 1000;  // check every 2 minutes
 
 async function checkOfflineDevices() {
   try {
-    const now           = new Date();
-    const offlineCutoff = new Date(now - OFFLINE_THRESHOLD_MS);
+    const now            = new Date();
+    const offlineCutoff  = new Date(now - OFFLINE_THRESHOLD_MS);
+    const recentlySeen   = new Date(now - RECENTLY_SEEN_MS);  // device must have been active recently
     const cooldownCutoff = new Date(now - COOLDOWN_MS);
 
-    // ACTIVE devices that haven't pinged recently
+    // ACTIVE devices that went silent recently (not just always-off/unused)
     const candidates = await Device.find({
       status: 'ACTIVE',
       $and: [
-        // 1. Offline: lastSeen null or stale
-        {
-          $or: [
-            { lastSeen: null },
-            { lastSeen: { $lt: offlineCutoff } }
-          ]
-        },
-        // 2. Not suppressed by owner (5-min confirmation window)
+        // 1. Offline: hasn't pinged for > OFFLINE_THRESHOLD
+        { lastSeen: { $lt: offlineCutoff } },
+        // 2. Was seen within the RECENTLY_SEEN window (went offline recently, not weeks ago)
+        { lastSeen: { $gt: recentlySeen } },
+        // 3. Not suppressed by owner ("it's me" confirmation)
         {
           $or: [
             { alarmSuppressedUntil: null },
             { alarmSuppressedUntil: { $lt: now } }
           ]
         },
-        // 3. Cooldown: don't spam if already alerted recently
+        // 4. Cooldown: don't re-alert within 5 min
         {
           $or: [
             { offlineAlertSentAt: null },
