@@ -15,8 +15,25 @@ router.use(requireApproved);
 router.get('/', async (req, res) => {
   try {
     const devices = await Device.find({ ownerId: req.user._id })
-      .populate('preferredZoneId', 'name center');
-    res.json(devices);
+      .populate('preferredZoneId', 'name center')
+      .sort({ createdAt: 1 }); // oldest first so duplicates keep the original
+
+    // Deduplicate: per fingerprint keep the most-recently-seen entry.
+    // Devices with empty fingerprint each get a unique slot via their _id.
+    const seen = new Map();
+    for (const d of devices) {
+      const key = d.deviceFingerprint || d._id.toString();
+      if (!seen.has(key)) {
+        seen.set(key, d);
+      } else {
+        const prev = seen.get(key);
+        const dTime = d.lastSeen || d.createdAt;
+        const pTime = prev.lastSeen || prev.createdAt;
+        if (dTime > pTime) seen.set(key, d);
+      }
+    }
+
+    res.json([...seen.values()]);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

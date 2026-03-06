@@ -50,7 +50,8 @@ function init(httpServer, { path = '/ws' } = {}) {
       if (type === 'subscribe') {
         const meta = clientMeta.get(ws) || {};
         meta.subscribedTo = payload?.macAddress || payload?.deviceId || null;
-        meta.userId = payload?.userId || null;  // owner identity for cross-device alarm
+        meta.userId = payload?.userId || null;        // owner identity for cross-device alarm
+        meta.isDesignated = payload?.isDesignated === true;  // only designated devices receive theft alarms
         clientMeta.set(ws, meta);
         return safeSend(ws, { type: 'ack', payload: { ok: true, subscribedTo: meta.subscribedTo }, requestId });
       }
@@ -127,6 +128,19 @@ function broadcastAlarmToOwner(ownerId, deviceId) {
 }
 
 /**
+ * Send a theft alarm ONLY to the owner's DESIGNATED device sessions.
+ * Used by offline-detection so non-designated devices stay quiet.
+ */
+function broadcastAlarmToDesignated(ownerId, deviceId, deviceName) {
+  const ownerStr = ownerId.toString();
+  const deviceStr = deviceId.toString();
+  broadcast('alarm', { deviceId: deviceStr, deviceName: deviceName || '' }, {
+    match: (meta) =>
+      meta.userId === ownerStr && meta.isDesignated === true
+  });
+}
+
+/**
  * Attach a WS-ingest handler.
  * The callback should accept the payload and return the same shape as HTTP /api/location/ping.
  */
@@ -140,5 +154,6 @@ module.exports = {
   broadcastPingSaved,
   broadcastAlarm,
   broadcastAlarmToOwner,
-  setOnPing
+  broadcastAlarmToDesignated,
+  setOnPing,
 };

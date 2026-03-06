@@ -342,8 +342,8 @@ router.post('/dismiss-alarm', async (req, res) => {
       return res.status(400).json({ error: 'Device is not marked as a designated device' });
     }
 
-    // Suppress theft alarms for 4 hours
-    device.alarmSuppressedUntil = new Date(Date.now() + 4 * 60 * 60 * 1000);
+    // Suppress theft alarms for 5 minutes (owner confirmed "not a theft")
+    device.alarmSuppressedUntil = new Date(Date.now() + 5 * 60 * 1000);
     await device.save();
 
     res.json({ ok: true, suppressedUntil: device.alarmSuppressedUntil });

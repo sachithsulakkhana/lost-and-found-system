@@ -5,6 +5,7 @@ const cors = require('cors');
 const connectDB = require('./config/db');
 const env = require('./config/env');
 const { startScheduler } = require('./services/reminderScheduler');
+const offlineDetection = require('./services/offlineDetectionService');
 const pythonMLService = require('./services/pythonMLService');
 const path = require('path');
 const http = require('http');
@@ -127,6 +128,9 @@ server.listen(env.PORT, async () => {
 
   // Start reminder scheduler
   startScheduler();
+
+  // Start offline device detection (alerts designated phones when a device goes silent)
+  offlineDetection.start();
 
   // Load Enhanced ML Ensemble model
   await initializeMLModel();
