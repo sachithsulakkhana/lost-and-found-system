@@ -39,14 +39,9 @@ export function generateDeviceFingerprint() {
     components.push(navigator.deviceMemory.toString());
   }
 
-  // 8. Connection info (if available)
-  const connection = navigator.connection || // @ts-ignore
-    navigator.mozConnection ||
-    navigator.webkitConnection;
-
-  if (connection) {
-    components.push((connection.effectiveType || 'unknown').toString());
-  }
+  // NOTE: connection.effectiveType intentionally excluded — it changes between
+  // WiFi and mobile data, which would create a new fingerprint (and duplicate device)
+  // every time the user switches networks on the same device.
 
   // Simple hash function
   let hash = 0;

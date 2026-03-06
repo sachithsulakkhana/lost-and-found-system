@@ -1,16 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'react-toastify';
 import api from '../services/api';
-import { getAutoDeviceInfo, getDeviceIdentifier, storeDeviceInfo } from '../services/deviceFingerprint';
 
 function Badge({ text, tone = 'secondary', icon }) {
   const cls = useMemo(() => {
     if (tone === 'success') return 'bg-success-subtle text-success border border-success-subtle';
     if (tone === 'warning') return 'bg-warning-subtle text-warning border border-warning-subtle';
     if (tone === 'danger') return 'bg-danger-subtle text-danger border border-danger-subtle';
+    if (tone === 'info') return 'bg-info-subtle text-info border border-info-subtle';
     return 'bg-light text-muted border';
   }, [tone]);
-
   return (
     <span className={`badge rounded-pill ${cls} px-3 py-2 fw-semibold`}>
       {icon ? <i className={`mdi ${icon} me-1`} /> : null}
@@ -19,44 +18,26 @@ function Badge({ text, tone = 'secondary', icon }) {
   );
 }
 
-function Modal({ title, open, onClose, children, footer }) {
-  if (!open) return null;
-  return (
-    <div className="modal d-block" tabIndex={-1} role="dialog" style={{ background: 'rgba(0,0,0,.5)' }}>
-      <div className="modal-dialog modal-lg modal-dialog-centered" role="document">
-        <div className="modal-content border-0 shadow-lg" style={{ borderRadius: 14 }}>
-          <div className="modal-header border-0 pb-0">
-            <h5 className="modal-title fw-bold">{title}</h5>
-            <button type="button" className="btn btn-sm btn-light border" onClick={onClose}>
-              <i className="mdi mdi-close" />
-            </button>
-          </div>
-          <div className="modal-body pt-2">{children}</div>
-          {footer ? <div className="modal-footer border-0 pt-0">{footer}</div> : null}
-        </div>
-      </div>
-    </div>
-  );
+function deviceIcon(d) {
+  const t = (d.deviceType || d.manufacturer || '').toLowerCase();
+  if (t.includes('iphone') || t.includes('apple') || (d.name || '').toLowerCase().includes('iphone')) return 'mdi-cellphone';
+  if (t.includes('android')) return 'mdi-android';
+  if (t.includes('windows')) return 'mdi-microsoft-windows';
+  if (t.includes('mac')) return 'mdi-apple';
+  if (t.includes('linux')) return 'mdi-linux';
+  if (t.includes('mobile') || t.includes('phone')) return 'mdi-cellphone';
+  return 'mdi-laptop';
 }
 
 export default function DevicesPage() {
   const [devices, setDevices] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [open, setOpen] = useState(false);
   const [togglingDesignated, setTogglingDesignated] = useState(null);
-  const [verifying, setVerifying] = useState(false);
-  const [verifyProgress, setVerifyProgress] = useState(0);
-  const [verifyStep, setVerifyStep] = useState(0);
-  const [form, setForm] = useState({
-    name: '',
-  });
+  const [deleting, setDeleting] = useState(null);
 
-  const steps = [
-    { label: 'Preparing Device', icon: 'mdi-shield-check-outline' },
-    { label: 'ML Device Recognition', icon: 'mdi-brain' },
-    { label: 'Learning Device Patterns', icon: 'mdi-chart-line' },
-    { label: 'Finalizing Registration', icon: 'mdi-check-circle-outline' },
-  ];
+  // The fingerprint of THIS browser — used to highlight "This Device"
+  const currentFingerprint = localStorage.getItem('deviceId') || '';
+  const enrolledDeviceId   = localStorage.getItem('enrolledDeviceId') || '';
 
   const fetchDevices = async () => {
     try {
@@ -70,33 +51,18 @@ export default function DevicesPage() {
     }
   };
 
-  useEffect(() => {
-    fetchDevices();
-  }, []);
-
-  const simulateVerification = async () => {
-    setVerifying(true);
-    setVerifyProgress(0);
-    setVerifyStep(0);
-
-    for (let step = 0; step < steps.length; step++) {
-      setVerifyStep(step);
-      for (let progress = 0; progress <= 100; progress += 5) {
-        setVerifyProgress(progress);
-        // eslint-disable-next-line no-await-in-loop
-        await new Promise((r) => setTimeout(r, 25));
-      }
-      // eslint-disable-next-line no-await-in-loop
-      await new Promise((r) => setTimeout(r, 220));
-    }
-  };
+  useEffect(() => { fetchDevices(); }, []);
 
   const toggleDesignated = async (deviceId) => {
     setTogglingDesignated(deviceId);
     try {
       const { data } = await api.put(`/devices/${deviceId}/designated`);
-      setDevices((prev) => prev.map((d) => d._id === deviceId ? { ...d, isDesignated: data.isDesignated } : d));
-      toast.success(data.isDesignated ? 'Marked as designated device — alarms suppressed after owner dismiss' : 'Designation removed');
+      setDevices(prev => prev.map(d =>
+        d._id === deviceId ? { ...d, isDesignated: data.isDesignated } : d
+      ));
+      toast.success(data.isDesignated
+        ? 'Designated — theft alarms will ring on this device'
+        : 'Designation removed');
     } catch {
       toast.error('Failed to update device');
     } finally {
@@ -104,37 +70,102 @@ export default function DevicesPage() {
     }
   };
 
-  const onSubmit = async () => {
+  const deleteDevice = async (deviceId, name) => {
+    if (!window.confirm(`Remove "${name}" from your device list?`)) return;
+    setDeleting(deviceId);
     try {
-      // Get auto-detected device info
-      const deviceInfo = getAutoDeviceInfo();
-      const deviceIdentifier = getDeviceIdentifier();
-
-      // Submit with auto-detected info
-      const deviceData = {
-        name: form.name || deviceInfo.name,
-        identifier: deviceInfo.name,
-        manufacturer: deviceInfo.manufacturer,
-        model: deviceInfo.model,
-        deviceFingerprint: deviceIdentifier,
-        userAgent: deviceInfo.userAgent
-      };
-
-      await simulateVerification();
-      const response = await api.post('/devices', deviceData);
-
-      // Store device info locally for future reference
-      storeDeviceInfo(deviceIdentifier, deviceInfo);
-
-      toast.success('Device registered successfully. ML learning period started.');
-      setOpen(false);
-      setVerifying(false);
-      setForm({ name: '' });
-      fetchDevices();
-    } catch (e) {
-      setVerifying(false);
-      toast.error(e?.response?.data?.error || 'Failed to add device');
+      await api.delete(`/devices/${deviceId}`);
+      setDevices(prev => prev.filter(d => d._id !== deviceId));
+      toast.success('Device removed');
+    } catch {
+      toast.error('Failed to remove device');
+    } finally {
+      setDeleting(null);
     }
+  };
+
+  // Split into "this device", monitored targets, and unknown/auto sessions
+  const thisDevice   = devices.find(d =>
+    d.deviceFingerprint === currentFingerprint || d._id === enrolledDeviceId
+  );
+  const otherDevices = devices.filter(d => d._id !== thisDevice?._id);
+
+  const renderRow = (d, isThis = false) => {
+    const icon = deviceIcon(d);
+    const isLearning = d.status === 'LEARNING';
+
+    return (
+      <tr key={d._id} style={isThis ? { background: '#f0f7ff' } : {}}>
+        <td>
+          <div className="d-flex align-items-center gap-2">
+            <span className="cp-stat icon" style={{ width: 38, height: 38, borderRadius: 12, background: isThis ? '#dbeafe' : undefined }}>
+              <i className={`mdi ${icon}`} style={{ color: isThis ? '#2563eb' : undefined }} />
+            </span>
+            <div>
+              <div className="fw-semibold d-flex align-items-center gap-2">
+                {d.name}
+                {isThis && (
+                  <span className="badge bg-primary rounded-pill px-2 py-1" style={{ fontSize: '0.7rem' }}>
+                    This Device
+                  </span>
+                )}
+                {d.isDesignated && (
+                  <span className="badge bg-success rounded-pill px-2 py-1" style={{ fontSize: '0.7rem' }}>
+                    <i className="mdi mdi-shield-check me-1" />Designated
+                  </span>
+                )}
+              </div>
+              <div className="text-muted small" style={{ fontFamily: 'monospace' }}>
+                {d.deviceFingerprint || '—'}
+              </div>
+            </div>
+          </div>
+        </td>
+        <td>
+          <div>{d.manufacturer || '—'}</div>
+          <div className="text-muted small">{d.model || d.deviceType || '—'}</div>
+        </td>
+        <td>
+          {isLearning
+            ? <Badge text="Learning" tone="warning" icon="mdi-brain" />
+            : <Badge text="Active" tone="success" icon="mdi-check" />
+          }
+        </td>
+        <td>
+          <button
+            className={`btn btn-sm ${d.isDesignated ? 'btn-success' : 'btn-outline-secondary'}`}
+            onClick={() => toggleDesignated(d._id)}
+            disabled={togglingDesignated === d._id}
+            title={d.isDesignated
+              ? 'Designated: theft alarms ring here. Click to remove.'
+              : 'Mark as designated — theft alarms will ring on this device'}
+            style={{ whiteSpace: 'nowrap' }}
+          >
+            <i className={`mdi ${d.isDesignated ? 'mdi-shield-check' : 'mdi-shield-outline'} me-1`} />
+            {togglingDesignated === d._id ? '…' : d.isDesignated ? 'Designated' : 'Set Designated'}
+          </button>
+        </td>
+        <td className="text-end">
+          <div className="d-flex align-items-center justify-content-end gap-2">
+            <Badge
+              text={d.status || 'UNKNOWN'}
+              tone={d.status === 'ACTIVE' ? 'success' : d.status === 'LEARNING' ? 'warning' : 'secondary'}
+              icon={d.status === 'ACTIVE' ? 'mdi-check-decagram' : d.status === 'LEARNING' ? 'mdi-timer-sand' : 'mdi-help-circle-outline'}
+            />
+            {!isThis && (
+              <button
+                className="btn btn-sm btn-outline-danger"
+                onClick={() => deleteDevice(d._id, d.name)}
+                disabled={deleting === d._id}
+                title="Remove this device"
+              >
+                <i className="mdi mdi-delete-outline" />
+              </button>
+            )}
+          </div>
+        </td>
+      </tr>
+    );
   };
 
   return (
@@ -146,14 +177,19 @@ export default function DevicesPage() {
           </h2>
           <div className="text-muted small">
             <i className="mdi mdi-information-outline me-1" />
-            Devices are automatically detected and enrolled. They appear here once you start using the app.
+            Devices auto-detect from your browser. Mark your phone/laptop as <strong>Designated</strong> to receive theft alarms.
           </div>
         </div>
       </div>
 
-      <div className="alert alert-info mb-4">
-        <i className="mdi mdi-auto-fix me-2" />
-        <strong>Automatic Device Detection Enabled:</strong> Your devices are being automatically detected and registered. No manual setup required!
+      <div className="alert alert-info mb-4 d-flex gap-2">
+        <i className="mdi mdi-shield-alert-outline fs-5 mt-1" />
+        <div>
+          <strong>How theft alerts work:</strong> Mark your primary phone or laptop as <strong>Designated</strong>.
+          When any of your monitored devices goes offline unexpectedly, only your designated device will receive the alarm.
+          <br />
+          <span className="text-primary fw-semibold">Look for "This Device" below — that is the current browser/device you're on.</span>
+        </div>
       </div>
 
       <div className="card">
@@ -163,17 +199,16 @@ export default function DevicesPage() {
               <thead>
                 <tr className="text-muted small" style={{ letterSpacing: '.04em', textTransform: 'uppercase' }}>
                   <th>Device</th>
-                  <th>Type / Identifier</th>
-                  <th>Manufacturer</th>
+                  <th>Make / Model</th>
                   <th>ML Status</th>
-                  <th>Designated</th>
+                  <th>Alarm Designation</th>
                   <th className="text-end">Status</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={6} className="py-4">
+                    <td colSpan={5} className="py-4">
                       <div className="d-flex align-items-center gap-2 text-muted">
                         <span className="spinner-border spinner-border-sm" role="status" /> Loading…
                       </div>
@@ -181,59 +216,27 @@ export default function DevicesPage() {
                   </tr>
                 ) : devices.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="py-5 text-center text-muted">
+                    <td colSpan={5} className="py-5 text-center text-muted">
                       <i className="mdi mdi-devices-off fs-2 d-block mb-2 opacity-50" />
-                      No devices detected yet.<br />
-                      <small>Use the app on your device and it will automatically appear here.</small>
+                      No devices detected yet.
                     </td>
                   </tr>
                 ) : (
-                  devices.map((d) => {
-                    const isLearning = d.status === 'LEARNING';
-                    return (
-                      <tr key={d._id}>
-                        <td>
-                          <div className="d-flex align-items-center gap-2">
-                            <span className="cp-stat icon" style={{ width: 38, height: 38, borderRadius: 12 }}>
-                              <i className="mdi mdi-laptop" />
-                            </span>
-                            <div>
-                              <div className="fw-semibold">{d.name}</div>
-                              <div className="text-muted small">{d.deviceFingerprint || '—'}</div>
-                            </div>
-                          </div>
-                        </td>
-                        <td>{d.identifier || d.deviceType || '—'}</td>
-                        <td>{d.manufacturer || '—'}</td>
-                        <td>
-                          {isLearning ? (
-                            <Badge text="Learning" tone="warning" icon="mdi-brain" />
-                          ) : (
-                            <Badge text="Ready" tone="success" icon="mdi-check" />
-                          )}
-                        </td>
-                        <td>
-                          <button
-                            className={`btn btn-sm ${d.isDesignated ? 'btn-success' : 'btn-outline-secondary'}`}
-                            onClick={() => toggleDesignated(d._id)}
-                            disabled={togglingDesignated === d._id}
-                            title={d.isDesignated ? 'Designated: owner dismiss will suppress future alarms. Click to remove.' : 'Mark as designated owner device'}
-                            style={{ whiteSpace: 'nowrap' }}
-                          >
-                            <i className={`mdi ${d.isDesignated ? 'mdi-shield-check' : 'mdi-shield-outline'} me-1`} />
-                            {togglingDesignated === d._id ? '...' : d.isDesignated ? 'Designated' : 'Set Designated'}
-                          </button>
-                        </td>
-                        <td className="text-end">
-                          <Badge
-                            text={d.status || 'UNKNOWN'}
-                            tone={d.status === 'ACTIVE' ? 'success' : d.status === 'LEARNING' ? 'warning' : 'secondary'}
-                            icon={d.status === 'ACTIVE' ? 'mdi-check-decagram' : d.status === 'LEARNING' ? 'mdi-timer-sand' : 'mdi-help-circle-outline'}
-                          />
+                  <>
+                    {/* This Device — always first */}
+                    {thisDevice && renderRow(thisDevice, true)}
+
+                    {/* Separator if there are other devices */}
+                    {thisDevice && otherDevices.length > 0 && (
+                      <tr>
+                        <td colSpan={5} className="py-1 px-3 text-muted small" style={{ background: '#f8f9fa', fontStyle: 'italic' }}>
+                          Other registered devices
                         </td>
                       </tr>
-                    );
-                  })
+                    )}
+
+                    {otherDevices.map(d => renderRow(d, false))}
+                  </>
                 )}
               </tbody>
             </table>
@@ -241,60 +244,12 @@ export default function DevicesPage() {
         </div>
       </div>
 
-      <Modal
-        title="Add Device"
-        open={open}
-        onClose={() => (!verifying ? setOpen(false) : null)}
-        footer={
-          <>
-            <button className="btn btn-light border" onClick={() => setOpen(false)} disabled={verifying}>
-              Cancel
-            </button>
-            <button className="btn btn-cp" onClick={onSubmit} disabled={verifying || !form.name.trim()}>
-              {verifying ? 'Verifying…' : 'Register'}
-            </button>
-          </>
-        }
-      >
-        <div className="row g-3">
-          <div className="col-12">
-            <label className="form-label fw-semibold">Device Name</label>
-            <input
-              className="form-control"
-              placeholder="e.g., My iPhone, Personal Laptop"
-              value={form.name}
-              onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
-            />
-            <small className="text-muted d-block mt-2">
-              Device info (type, manufacturer, model) will be automatically detected from your device.
-            </small>
-          </div>
+      {devices.length > 0 && (
+        <div className="mt-3 text-muted small">
+          <i className="mdi mdi-information-outline me-1" />
+          Auto-enrolled "Learning" devices from old browser sessions can be removed using <i className="mdi mdi-delete-outline" />. They will not affect monitoring.
         </div>
-
-        {verifying ? (
-          <div className="mt-4">
-            <div className="d-flex align-items-center justify-content-between mb-2">
-              <div className="fw-semibold d-flex align-items-center gap-2">
-                <i className={`mdi ${steps[verifyStep]?.icon}`} /> {steps[verifyStep]?.label}
-              </div>
-              <div className="small text-muted">{verifyProgress}%</div>
-            </div>
-            <div className="progress" style={{ height: 8 }}>
-              <div className="progress-bar" role="progressbar" style={{ width: `${verifyProgress}%` }} />
-            </div>
-            <div className="mt-3 d-flex flex-wrap gap-2">
-              {steps.map((s, idx) => (
-                <span
-                  key={s.label}
-                  className={`badge rounded-pill px-3 py-2 ${idx <= verifyStep ? 'bg-primary-subtle text-primary border border-primary-subtle' : 'bg-light text-muted border'}`}
-                >
-                  <i className={`mdi ${s.icon} me-1`} /> {s.label}
-                </span>
-              ))}
-            </div>
-          </div>
-        ) : null}
-      </Modal>
+      )}
     </div>
   );
 }

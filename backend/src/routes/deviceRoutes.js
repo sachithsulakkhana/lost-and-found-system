@@ -16,21 +16,14 @@ router.get('/', async (req, res) => {
   try {
     const devices = await Device.find({ ownerId: req.user._id })
       .populate('preferredZoneId', 'name center')
-      .sort({ createdAt: 1 }); // oldest first so duplicates keep the original
+      .sort({ lastSeen: -1, createdAt: -1 }); // most recently active first
 
-    // Deduplicate: per fingerprint keep the most-recently-seen entry.
+    // Deduplicate: sorted newest-first, so first hit per fingerprint is the most active.
     // Devices with empty fingerprint each get a unique slot via their _id.
     const seen = new Map();
     for (const d of devices) {
       const key = d.deviceFingerprint || d._id.toString();
-      if (!seen.has(key)) {
-        seen.set(key, d);
-      } else {
-        const prev = seen.get(key);
-        const dTime = d.lastSeen || d.createdAt;
-        const pTime = prev.lastSeen || prev.createdAt;
-        if (dTime > pTime) seen.set(key, d);
-      }
+      if (!seen.has(key)) seen.set(key, d); // keep first (most recently seen)
     }
 
     res.json([...seen.values()]);
@@ -202,6 +195,17 @@ router.post('/ping', async (req, res) => {
     const ping = await DevicePing.create(pingData);
 
     res.json({ ping, deviceStatus: device.status, deviceId: device._id });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.delete('/:id', async (req, res) => {
+  try {
+    const device = await Device.findOne({ _id: req.params.id, ownerId: req.user._id });
+    if (!device) return res.status(404).json({ error: 'Device not found' });
+    await Device.deleteOne({ _id: device._id });
+    res.json({ ok: true });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

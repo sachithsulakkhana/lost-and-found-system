@@ -60,11 +60,16 @@ export default function AppLayout({ children }) {
   useEffect(() => {
     setUser(getUser());
 
-    // If not already marked enrolled, check DB (returning user from a prior session)
+    // If not already marked enrolled, check DB (returning user from a prior session).
+    // Match by THIS browser's fingerprint so TheftGuard attaches to the correct device.
     if (!localStorage.getItem('enrolledDeviceId')) {
       api.get('/devices').then(res => {
         if (Array.isArray(res.data) && res.data.length > 0) {
-          localStorage.setItem('enrolledDeviceId', res.data[0]._id);
+          const currentFp = localStorage.getItem('deviceId');
+          const myDevice = currentFp
+            ? res.data.find(d => d.deviceFingerprint === currentFp)
+            : null;
+          localStorage.setItem('enrolledDeviceId', (myDevice || res.data[0])._id);
           setDeviceReady(true);
         }
       }).catch(() => {});
