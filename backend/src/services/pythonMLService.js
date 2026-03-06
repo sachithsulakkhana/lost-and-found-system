@@ -6,7 +6,7 @@
 const axios = require('axios');
 
 // Python ML Service URL
-const PYTHON_ML_URL = process.env.PYTHON_ML_URL || 'http://localhost:5001';
+const PYTHON_ML_URL = process.env.ML_SERVICE_URL || process.env.PYTHON_ML_URL || 'http://localhost:5001';
 
 class PythonMLService {
   constructor() {
