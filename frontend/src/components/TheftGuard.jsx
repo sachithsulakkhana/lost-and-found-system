@@ -63,8 +63,13 @@ export default function TheftGuard() {
   const [alarm,           setAlarm]           = useState(false);
   const [alarmDeviceName, setAlarmDeviceName] = useState('');
   const [isDesignated,    setIsDesignated]    = useState(false);
-  const [suppressLeft,    setSuppressLeft]    = useState(0); // seconds remaining countdown
+  const [suppressLeft,    setSuppressLeft]    = useState(0);
   const countdownRef = useRef(null);
+
+  // Anomaly notification state (separate from full-screen theft alarm)
+  const [anomalyNote, setAnomalyNote] = useState(null);
+  // { deviceId, deviceName, score, lat, lng, hourOfDay, dayOfWeek, alertId }
+  const [learningNote, setLearningNote] = useState(''); // optional note from user
 
   // Fetch designated status when mount / when myDeviceId changes
   useEffect(() => {
@@ -151,9 +156,26 @@ export default function TheftGuard() {
       ws.onmessage = (event) => {
         try {
           const msg = JSON.parse(event.data);
-          // Only designated devices respond to alarms
-          if (msg.type === 'alarm' && isDesignated) {
+          if (!isDesignated) return; // non-designated devices receive nothing
+
+          if (msg.type === 'alarm') {
             startSiren(msg.payload?.deviceId, msg.payload?.deviceName || '');
+          }
+
+          if (msg.type === 'anomaly_alert') {
+            const p = msg.payload || {};
+            const ts = p.timestamp ? new Date(p.timestamp) : new Date();
+            setAnomalyNote({
+              deviceId:   p.deviceId,
+              deviceName: p.deviceName || 'Unknown device',
+              score:      p.anomalyScore || 0,
+              lat:        p.location?.lat,
+              lng:        p.location?.lng,
+              hourOfDay:  ts.getHours(),
+              dayOfWeek:  ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][ts.getDay()],
+              alertId:    p.alert?._id,
+            });
+            setLearningNote('');
           }
         } catch {}
       };
@@ -228,6 +250,31 @@ export default function TheftGuard() {
     return () => clearInterval(t);
   }, [myDeviceId, startSiren]);
 
+  // ── Anomaly handlers ────────────────────────────────────────────
+  const confirmNormal = useCallback(async () => {
+    if (!anomalyNote) return;
+    try {
+      await api.post('/monitoring/confirm-normal', {
+        deviceId:  anomalyNote.deviceId,
+        alertId:   anomalyNote.alertId,
+        lat:       anomalyNote.lat,
+        lng:       anomalyNote.lng,
+        hourOfDay: anomalyNote.hourOfDay,
+        dayOfWeek: anomalyNote.dayOfWeek,
+        note:      learningNote,
+      });
+    } catch (e) {
+      console.warn('[TheftGuard] confirm-normal failed:', e.message);
+    }
+    setAnomalyNote(null);
+    setLearningNote('');
+  }, [anomalyNote, learningNote]);
+
+  const dismissAnomaly = useCallback(() => {
+    setAnomalyNote(null);
+    setLearningNote('');
+  }, []);
+
   // ── Countdown badge ─────────────────────────────────────────────
   const badge = suppressLeft > 0 && !alarm ? (
     <div style={{
@@ -246,15 +293,82 @@ export default function TheftGuard() {
     </div>
   ) : null;
 
+  // ── Anomaly notification panel (amber, non-full-screen) ─────────
+  const anomalyPanel = anomalyNote && isDesignated ? (
+    <div style={{
+      position: 'fixed', bottom: 80, right: 16, zIndex: 99998,
+      width: 340, borderRadius: 14,
+      background: 'linear-gradient(135deg,#78350f,#92400e)',
+      color: '#fff', boxShadow: '0 8px 32px rgba(0,0,0,.45)',
+      padding: '16px 18px', fontSize: '0.87rem'
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+        <span style={{ fontSize: 22 }}>⚠️</span>
+        <div>
+          <div style={{ fontWeight: 800, fontSize: '0.95rem' }}>Anomaly Detected</div>
+          <div style={{ opacity: 0.85 }}>{anomalyNote.deviceName}</div>
+        </div>
+        <div style={{
+          marginLeft: 'auto', background: 'rgba(255,255,255,.15)',
+          borderRadius: 8, padding: '2px 10px', fontWeight: 700, fontSize: '0.9rem'
+        }}>
+          {(anomalyNote.score * 100).toFixed(0)}%
+        </div>
+      </div>
+
+      <div style={{ opacity: 0.75, marginBottom: 10, fontSize: '0.8rem' }}>
+        Unusual location or time detected at {anomalyNote.hourOfDay}:00 · {anomalyNote.dayOfWeek}
+        {anomalyNote.lat ? ` · (${anomalyNote.lat.toFixed(4)}, ${anomalyNote.lng.toFixed(4)})` : ''}
+      </div>
+
+      <input
+        type="text"
+        placeholder="Optional note: e.g. 'library visit'"
+        value={learningNote}
+        onChange={e => setLearningNote(e.target.value)}
+        style={{
+          width: '100%', borderRadius: 7, border: 'none', padding: '6px 10px',
+          marginBottom: 10, fontSize: '0.82rem', background: 'rgba(255,255,255,.15)',
+          color: '#fff', outline: 'none',
+        }}
+      />
+
+      <div style={{ display: 'flex', gap: 8 }}>
+        <button
+          onClick={confirmNormal}
+          style={{
+            flex: 1, padding: '8px 0', borderRadius: 7, border: 'none',
+            background: '#fff', color: '#92400e', fontWeight: 700,
+            fontSize: '0.8rem', cursor: 'pointer'
+          }}
+        >
+          ✅ It's Normal — Learn It
+        </button>
+        <button
+          onClick={dismissAnomaly}
+          style={{
+            flex: 1, padding: '8px 0', borderRadius: 7,
+            border: '1.5px solid rgba(255,255,255,.5)',
+            background: 'transparent', color: '#fff', fontWeight: 600,
+            fontSize: '0.8rem', cursor: 'pointer'
+          }}
+        >
+          🚨 Keep Alert
+        </button>
+      </div>
+    </div>
+  ) : null;
+
   // Non-designated — render nothing
   if (!isDesignated) return badge;
-  if (!alarm) return badge;
+  if (!alarm) return <>{badge}{anomalyPanel}</>;
 
   const suppressMins = Math.ceil(SUPPRESS_MS / 60000);
 
   return (
     <>
       {badge}
+      {anomalyPanel}
       <div style={{
         position: 'fixed', inset: 0, zIndex: 99999,
         background: 'rgba(220,0,0,0.92)',

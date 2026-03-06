@@ -10,6 +10,7 @@ const pushService = require('../services/pushService');
 const { sendSMS, formatPhoneNumber } = require('../services/smsService');
 const User = require('../models/User');
 const { requireAuth } = require('../middleware/auth');
+const LearnedPattern = require('../models/LearnedPattern');
 
 // All theft/alarm broadcasts go ONLY to the owner's designated sessions.
 const sendAlarm = (ownerId, deviceId, deviceName) =>
@@ -537,6 +538,84 @@ router.post('/sleep-ping', async (req, res) => {
     res.json({ ok: true });
   } catch (error) {
     console.error('sleep-ping error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * POST /api/monitoring/confirm-normal
+ * Owner confirmed an anomaly as a legitimate/normal pattern.
+ * Saves it as a LearnedPattern so future pings at that location+time score 0.
+ * Body: { deviceId, alertId, lat, lng, hourOfDay, dayOfWeek, note }
+ */
+router.post('/confirm-normal', async (req, res) => {
+  try {
+    const { deviceId, alertId, lat, lng, hourOfDay, dayOfWeek, note } = req.body;
+    if (!deviceId || lat == null || lng == null) {
+      return res.status(400).json({ error: 'deviceId, lat and lng are required' });
+    }
+
+    const device = await Device.findOne({ _id: deviceId, ownerId: req.user._id });
+    if (!device) return res.status(404).json({ error: 'Device not found' });
+
+    // Save the learned pattern
+    const pattern = await LearnedPattern.create({
+      deviceId:   device._id,
+      ownerId:    req.user._id,
+      lat:        parseFloat(lat),
+      lng:        parseFloat(lng),
+      hourOfDay:  parseInt(hourOfDay, 10) || new Date().getHours(),
+      dayOfWeek:  dayOfWeek || '',
+      note:       note || '',
+      alertId:    alertId || undefined,
+      confirmedAt: new Date()
+    });
+
+    // Resolve the originating alert if provided
+    if (alertId) {
+      await Alert.findByIdAndUpdate(alertId, {
+        isResolved: true,
+        resolvedAt: new Date(),
+        resolvedBy: req.user._id
+      });
+    }
+
+    console.log(`✅ Learned normal pattern for "${device.name}" at (${lat}, ${lng}) hour ${hourOfDay}`);
+    res.json({ ok: true, pattern });
+  } catch (error) {
+    console.error('confirm-normal error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /api/monitoring/patterns/:deviceId
+ * Returns all learned (confirmed normal) patterns for a device.
+ */
+router.get('/patterns/:deviceId', async (req, res) => {
+  try {
+    const device = await Device.findOne({ _id: req.params.deviceId, ownerId: req.user._id });
+    if (!device) return res.status(404).json({ error: 'Device not found' });
+
+    const patterns = await LearnedPattern.find({ deviceId: device._id })
+      .sort({ confirmedAt: -1 });
+    res.json(patterns);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * DELETE /api/monitoring/patterns/:patternId
+ * Remove a learned pattern (so that location is scored normally again).
+ */
+router.delete('/patterns/:patternId', async (req, res) => {
+  try {
+    const pattern = await LearnedPattern.findOne({ _id: req.params.patternId, ownerId: req.user._id });
+    if (!pattern) return res.status(404).json({ error: 'Pattern not found' });
+    await LearnedPattern.deleteOne({ _id: pattern._id });
+    res.json({ ok: true });
+  } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });

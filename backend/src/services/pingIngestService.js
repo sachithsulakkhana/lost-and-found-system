@@ -127,11 +127,11 @@ async function ingestPing(payload, { source = 'http' } = {}) {
         deviceId: device._id,
         type: 'ANOMALY',
         severity: 'HIGH',
-        message: `Unusual activity detected (score: ${anomalyScore.toFixed(2)})`,
+        message: `Unusual activity detected on "${device.name}" (score: ${anomalyScore.toFixed(2)})`,
         location: { lat, lng }
       });
-      // Broadcast anomaly alert to all connected clients instantly
-      wsService.broadcast('anomaly_alert', {
+      // Broadcast anomaly alert ONLY to the owner's designated device sessions
+      wsService.broadcastToDesignated(device.ownerId, 'anomaly_alert', {
         alert,
         deviceId: device._id.toString(),
         deviceName: device.name,

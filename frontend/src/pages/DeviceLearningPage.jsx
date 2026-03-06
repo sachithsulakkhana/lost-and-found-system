@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
+import { toast } from 'react-toastify';
 import { MapContainer, TileLayer, CircleMarker, Popup, Marker } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -67,9 +68,10 @@ export default function DeviceLearningPage() {
   const [devices, setDevices]   = useState([]);
   const [deviceId, setDeviceId] = useState('');
   const [pings, setPings]       = useState([]);
-  const [allDeviceAnomalies, setAllDeviceAnomalies] = useState([]); // all devices' anomalies
-  const [showAllDevices, setShowAllDevices] = useState(false); // toggle to show all devices
+  const [allDeviceAnomalies, setAllDeviceAnomalies] = useState([]);
+  const [showAllDevices, setShowAllDevices] = useState(false);
   const [loading, setLoading]   = useState(false);
+  const [patterns, setPatterns] = useState([]);  // learned normal patterns
 
   // Live calculator state
   const [calcLat,  setCalcLat]  = useState('');
@@ -123,9 +125,24 @@ export default function DeviceLearningPage() {
           setAllDeviceAnomalies([]);
         }
       }
+      // Load learned patterns for this device
+      try {
+        const patRes = await api.get(`/monitoring/patterns/${deviceId}`);
+        setPatterns(Array.isArray(patRes.data) ? patRes.data : []);
+      } catch { setPatterns([]); }
     } catch { setPings([]); }
     finally { setLoading(false); }
   }, [deviceId, showAllDevices]);
+
+  const deletePattern = async (patternId) => {
+    try {
+      await api.delete(`/monitoring/patterns/${patternId}`);
+      setPatterns(prev => prev.filter(p => p._id !== patternId));
+      toast.success('Pattern removed — location will be scored normally again');
+    } catch {
+      toast.error('Failed to remove pattern');
+    }
+  };
 
   useEffect(() => { loadPings(); }, [loadPings]);
 
@@ -546,6 +563,71 @@ export default function DeviceLearningPage() {
               </div>
             </div>
           )}
+
+          {/* ── Learned Patterns ── */}
+          <div className="card mb-4" style={{ border: '2px solid #d1fae5' }}>
+            <div className="card-body">
+              <div className="d-flex align-items-center justify-content-between mb-3">
+                <h6 className="fw-bold mb-0 d-flex align-items-center gap-2">
+                  <i className="mdi mdi-check-circle text-success" />
+                  Confirmed Normal Patterns
+                  {patterns.length > 0 && (
+                    <span className="badge bg-success rounded-pill">{patterns.length}</span>
+                  )}
+                </h6>
+                <span className="text-muted small">
+                  These locations × times are whitelisted — anomaly score = 0
+                </span>
+              </div>
+
+              {patterns.length === 0 ? (
+                <div className="text-muted small py-2">
+                  <i className="mdi mdi-information-outline me-1" />
+                  No patterns learned yet. When an anomaly alert appears on your designated device,
+                  press <strong>"It's Normal — Learn It"</strong> to add patterns here.
+                </div>
+              ) : (
+                <div className="table-responsive">
+                  <table className="table table-sm align-middle mb-0">
+                    <thead>
+                      <tr className="text-muted small" style={{ textTransform: 'uppercase', letterSpacing: '.04em' }}>
+                        <th>Location</th>
+                        <th>Hour</th>
+                        <th>Day</th>
+                        <th>Note</th>
+                        <th>Confirmed</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {patterns.map(p => (
+                        <tr key={p._id}>
+                          <td style={{ fontFamily: 'monospace', fontSize: '0.82rem' }}>
+                            {p.lat?.toFixed(5)}, {p.lng?.toFixed(5)}
+                          </td>
+                          <td>{p.hourOfDay}:00</td>
+                          <td>{p.dayOfWeek || '—'}</td>
+                          <td className="text-muted small">{p.note || '—'}</td>
+                          <td className="text-muted small">
+                            {new Date(p.confirmedAt).toLocaleString()}
+                          </td>
+                          <td>
+                            <button
+                              className="btn btn-sm btn-outline-danger"
+                              onClick={() => deletePattern(p._id)}
+                              title="Remove this pattern"
+                            >
+                              <i className="mdi mdi-delete-outline" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
 
           {/* ── Row 5: Replay Animation ── */}
           <div className="card mb-4" style={{ border: '2px solid #e0e7ff' }}>

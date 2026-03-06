@@ -141,6 +141,17 @@ function broadcastAlarmToDesignated(ownerId, deviceId, deviceName) {
 }
 
 /**
+ * Broadcast any message type exclusively to the owner's designated sessions.
+ * Used for anomaly_alert, offline_alert, etc.
+ */
+function broadcastToDesignated(ownerId, type, payload) {
+  const ownerStr = ownerId.toString();
+  broadcast(type, payload, {
+    match: (meta) => meta.userId === ownerStr && meta.isDesignated === true
+  });
+}
+
+/**
  * Attach a WS-ingest handler.
  * The callback should accept the payload and return the same shape as HTTP /api/location/ping.
  */
@@ -155,5 +166,6 @@ module.exports = {
   broadcastAlarm,
   broadcastAlarmToOwner,
   broadcastAlarmToDesignated,
+  broadcastToDesignated,
   setOnPing,
 };
