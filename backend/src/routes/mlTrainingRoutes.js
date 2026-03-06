@@ -342,20 +342,22 @@ router.get('/stats', async (req, res) => {
     const modelInfo = await pythonMLService.getModelInfo();
 
     if (!modelInfo) {
-      return res.status(503).json({
-        error: 'Python ML Service unavailable',
-        message: 'Cannot fetch model statistics'
+      return res.json({
+        available: false,
+        modelType: 'Python XGBoost',
+        message: 'ML service not running — start the Python service and train the model'
       });
     }
 
     res.json({
+      available: true,
       modelType: 'Python XGBoost',
       ...modelInfo
     });
   } catch (error) {
-    console.error('Stats error:', error);
-    res.status(500).json({
-      error: 'Failed to get stats',
+    res.json({
+      available: false,
+      modelType: 'Python XGBoost',
       message: error.message
     });
   }

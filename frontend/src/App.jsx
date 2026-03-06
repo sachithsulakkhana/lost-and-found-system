@@ -11,7 +11,6 @@ import AlertsPage from './pages/AlertsPage';
 import StudentBookingsPage from './pages/StudentBookingsPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
-import RemindersPage from './pages/RemindersPage';
 import AdminUsersPage from './pages/AdminUsersPage';
 import AdminZonesPage from './pages/AdminZonesPage';
 import AdminBookingsPage from './pages/AdminBookingsPage';
@@ -80,7 +79,6 @@ export default function App() {
         <Route path="/calendar" element={<WithLayout><CalendarPage /></WithLayout>} />
         <Route path="/alerts" element={<WithLayout><AlertsPage /></WithLayout>} />
         <Route path="/bookings" element={<WithLayout><StudentBookingsPage /></WithLayout>} />
-        <Route path="/reminders" element={<WithLayout><RemindersPage /></WithLayout>} />
         <Route path="/learning" element={<WithLayout><DeviceLearningPage /></WithLayout>} />
         <Route path="/risk-dashboard" element={<WithLayout><RiskDashboardPage /></WithLayout>} />
 

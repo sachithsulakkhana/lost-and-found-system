@@ -226,3 +226,23 @@ h3{font-size:1.125rem; font-weight:700;}
     overflow-x:auto;
   }
 }
+
+@media (max-width: 575.98px){
+  /* Reduce card padding on phones */
+  .card .card-body{ padding: 1rem; }
+  .cp-content{ padding: 12px 8px 0; }
+
+  /* Stat tiles: single column */
+  .cp-stat .value{ font-size: 1.4rem; }
+
+  /* Table: allow horizontal scroll, hide less critical columns */
+  .table-responsive{ -webkit-overflow-scrolling: touch; }
+
+  /* Auth card: full width on phone */
+  .cp-auth-left{ display: none; }
+  .cp-auth-card{ border-radius: 12px; }
+  .cp-auth-right{ padding: 24px 20px; }
+
+  /* Topbar: tighten padding */
+  .cp-topbar .container-fluid{ padding-left: 10px; padding-right: 10px; }
+}

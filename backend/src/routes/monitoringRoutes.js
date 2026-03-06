@@ -332,27 +332,24 @@ router.get('/stats', async (req, res) => {
 
 /**
  * POST /api/monitoring/dismiss-alarm
- * Owner dismissed the theft notification for a designated device.
- * Suppresses future alarms for 4 hours so repeat moves are not flagged as theft.
- */
-/**
- * POST /api/monitoring/dismiss-alarm
- * Owner confirmed "not a theft" on their designated device.
- * Suppresses future alarms for the MONITORED device (not the designated one)
- * for 5 minutes. After 5 minutes, if still offline the alarm re-fires.
- * Body: { deviceId: <id of the monitored device that triggered the alarm> }
+ * Owner confirmed "it's me" on their designated device.
+ * Suppresses the MONITORED device's alarms for 5 minutes.
+ * After 5 minutes, if it's still offline the alarm fires again automatically.
+ * Body: { deviceId: <mongo id of the monitored device that triggered the alarm> }
  */
 router.post('/dismiss-alarm', async (req, res) => {
   try {
     const { deviceId } = req.body;
     if (!deviceId) return res.status(400).json({ error: 'deviceId required' });
 
-    // deviceId is the monitored device — owner must own it
     const device = await Device.findOne({ _id: deviceId, ownerId: req.user._id });
     if (!device) return res.status(404).json({ error: 'Device not found' });
 
-    // Suppress alarms for this monitored device for 5 minutes
-    device.alarmSuppressedUntil = new Date(Date.now() + 5 * 60 * 1000);
+    const suppressUntil = new Date(Date.now() + 5 * 60 * 1000);
+    // Suppress alarms for 5 min
+    device.alarmSuppressedUntil = suppressUntil;
+    // Reset the alert-sent stamp so the 5-min cycle starts fresh from this dismiss
+    device.offlineAlertSentAt = new Date();
     await device.save();
 
     res.json({ ok: true, suppressedUntil: device.alarmSuppressedUntil });

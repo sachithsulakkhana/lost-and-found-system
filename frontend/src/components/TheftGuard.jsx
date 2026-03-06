@@ -297,10 +297,11 @@ export default function TheftGuard() {
   const anomalyPanel = anomalyNote && isDesignated ? (
     <div style={{
       position: 'fixed', bottom: 80, right: 16, zIndex: 99998,
-      width: 340, borderRadius: 14,
+      width: 'min(340px, calc(100vw - 32px))', borderRadius: 14,
       background: 'linear-gradient(135deg,#78350f,#92400e)',
       color: '#fff', boxShadow: '0 8px 32px rgba(0,0,0,.45)',
-      padding: '16px 18px', fontSize: '0.87rem'
+      padding: '16px 18px', fontSize: '0.87rem',
+      boxSizing: 'border-box',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
         <span style={{ fontSize: 22 }}>⚠️</span>
@@ -383,28 +384,29 @@ export default function TheftGuard() {
           }
         `}</style>
 
-        <div style={{ fontSize: 80 }}>🚨</div>
-        <h1 style={{ color: '#fff', fontWeight: 900, fontSize: '2.5rem', margin: '16px 0 4px', textAlign: 'center' }}>
+        <div style={{ fontSize: 'clamp(48px, 12vw, 80px)' }}>🚨</div>
+        <h1 style={{ color: '#fff', fontWeight: 900, fontSize: 'clamp(1.6rem, 5vw, 2.5rem)', margin: '16px 0 4px', textAlign: 'center' }}>
           THEFT ALERT
         </h1>
         {alarmDeviceName ? (
-          <p style={{ color: 'rgba(255,255,255,0.95)', fontSize: '1.15rem', fontWeight: 700, margin: '0 0 8px' }}>
+          <p style={{ color: 'rgba(255,255,255,0.95)', fontSize: 'clamp(0.9rem, 3vw, 1.15rem)', fontWeight: 700, margin: '0 0 8px' }}>
             Device: {alarmDeviceName}
           </p>
         ) : null}
-        <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: '1rem', textAlign: 'center', margin: '0 24px 32px' }}>
+        <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: 'clamp(0.8rem, 2.5vw, 1rem)', textAlign: 'center', margin: '0 16px 24px' }}>
           A monitored device has gone offline or been moved unexpectedly.
           <br />An alert has been logged to your account.
         </p>
 
-        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', justifyContent: 'center' }}>
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center', padding: '0 16px' }}>
           {/* Primary: owner confirms it's them */}
           <button
             onClick={() => stopSiren(true)}
             style={{
-              padding: '14px 36px', fontSize: '1rem', fontWeight: 700,
+              padding: '12px 24px', fontSize: 'clamp(0.85rem, 2.5vw, 1rem)', fontWeight: 700,
               borderRadius: 8, border: 'none', background: '#fff',
               color: '#16a34a', cursor: 'pointer', boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+              flexShrink: 0,
             }}
           >
             ✅ It's Me — Ignore ({suppressMins} min)
@@ -414,16 +416,17 @@ export default function TheftGuard() {
           <button
             onClick={() => stopSiren(false)}
             style={{
-              padding: '14px 36px', fontSize: '1rem', fontWeight: 700,
+              padding: '12px 24px', fontSize: 'clamp(0.85rem, 2.5vw, 1rem)', fontWeight: 700,
               borderRadius: 8, border: '2px solid rgba(255,255,255,0.6)',
               background: 'transparent', color: '#fff', cursor: 'pointer',
+              flexShrink: 0,
             }}
           >
             🔇 Silence Only
           </button>
         </div>
 
-        <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.78rem', marginTop: 16, textAlign: 'center' }}>
+        <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.78rem', marginTop: 16, textAlign: 'center', padding: '0 16px' }}>
           "It's Me" pauses the alarm for {suppressMins} minutes. If the device stays offline after {suppressMins} minutes, the alarm will fire again.
         </p>
       </div>

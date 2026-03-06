@@ -103,7 +103,6 @@ export default function AppLayout({ children }) {
       { label: 'Learning Insights', to: '/learning', icon: 'mdi-brain' },
       { label: 'Calendar', to: '/calendar', icon: 'mdi-calendar-month' },
       { label: 'Alerts', to: '/alerts', icon: 'mdi-bell-alert-outline' },
-      { label: 'Reminders', to: '/reminders', icon: 'mdi-bell-ring-outline' },
     ] : studentRestricted;
 
     const admin = [
@@ -111,7 +110,6 @@ export default function AppLayout({ children }) {
       { label: 'Risk Dashboard', to: '/risk-dashboard', icon: 'mdi-map-marker-radius' },
       { label: 'Booking Approvals', to: '/admin/booking-approvals', icon: 'mdi-check-decagram' },
       { label: 'Alerts', to: '/alerts', icon: 'mdi-bell-alert-outline' },
-      { label: 'All Reminders', to: '/reminders', icon: 'mdi-bell-ring-outline' },
       { label: 'User Management', to: '/admin/users', icon: 'mdi-account-multiple' },
       { label: 'Zone Management', to: '/admin/zones', icon: 'mdi-map-marker-multiple' },
       { label: 'All Bookings', to: '/admin/bookings', icon: 'mdi-calendar-text' },
