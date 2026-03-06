@@ -6,17 +6,12 @@ import api from './services/api';
 import DashboardPage from './pages/DashboardPage';
 import DevicesPage from './pages/DevicesPage';
 import DeviceMonitoringPage from './pages/DeviceMonitoringPage';
-import CalendarPage from './pages/CalendarPage';
 import AlertsPage from './pages/AlertsPage';
-import StudentBookingsPage from './pages/StudentBookingsPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import AdminUsersPage from './pages/AdminUsersPage';
 import AdminZonesPage from './pages/AdminZonesPage';
-import AdminBookingsPage from './pages/AdminBookingsPage';
-import AdminBookingCalendarPage from './pages/AdminBookingCalendarPage';
 import RiskDashboardPage from './pages/RiskDashboardPage';
-import AdminBookingApprovalsPage from './pages/AdminBookingApprovalsPage';
 import DeviceLearningPage from './pages/DeviceLearningPage';
 
 const STUDENT_EMAIL = 'student@example.com';
@@ -76,17 +71,12 @@ export default function App() {
         <Route path="/dashboard" element={<WithLayout><DashboardPage /></WithLayout>} />
         <Route path="/devices" element={<WithLayout><DevicesPage /></WithLayout>} />
         <Route path="/monitoring" element={<WithLayout><DeviceMonitoringPage /></WithLayout>} />
-        <Route path="/calendar" element={<WithLayout><CalendarPage /></WithLayout>} />
         <Route path="/alerts" element={<WithLayout><AlertsPage /></WithLayout>} />
-        <Route path="/bookings" element={<WithLayout><StudentBookingsPage /></WithLayout>} />
         <Route path="/learning" element={<WithLayout><DeviceLearningPage /></WithLayout>} />
         <Route path="/risk-dashboard" element={<WithLayout><RiskDashboardPage /></WithLayout>} />
 
         <Route path="/admin/users" element={<WithLayout adminOnly><AdminUsersPage /></WithLayout>} />
         <Route path="/admin/zones" element={<WithLayout adminOnly><AdminZonesPage /></WithLayout>} />
-        <Route path="/admin/calendar" element={<WithLayout adminOnly><AdminBookingCalendarPage /></WithLayout>} />
-        <Route path="/admin/bookings" element={<WithLayout adminOnly><AdminBookingsPage /></WithLayout>} />
-        <Route path="/admin/booking-approvals" element={<WithLayout adminOnly><AdminBookingApprovalsPage /></WithLayout>} />
 
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />

@@ -102,7 +102,8 @@ export default function RiskDashboardPage() {
 
   const loadZones = async () => {
     try {
-      const response = await api.get('/risk/zones');
+      // Admin route returns full zone docs with _id and isClosed
+      const response = await api.get('/admin/zones');
       setZones(response.data || []);
     } catch (error) {
       console.warn('Failed to load zones:', error?.message);
@@ -415,48 +416,47 @@ export default function RiskDashboardPage() {
                   <div className="list-group list-group-flush" style={{ maxHeight: 520, overflow: 'auto' }}>
                     {(heatmapData?.locations || []).map((loc) => {
                       const zone = zones.find(z => z.name === loc.location);
+                      const isSelected = selectedZone?.location === loc.location;
                       return (
-                        <button
+                        <div
                           key={loc.location}
-                          type="button"
-                          className={`list-group-item list-group-item-action d-flex align-items-center justify-content-between ${selectedZone?.location === loc.location ? 'active' : ''}`}
+                          role="button"
+                          tabIndex={0}
+                          className={`list-group-item list-group-item-action d-flex align-items-center justify-content-between ${isSelected ? 'active' : ''}`}
                           onClick={() => setSelectedZone(loc)}
-                          style={{ border: 0, borderRadius: 12, marginBottom: 10, opacity: zone?.isClosed ? 0.6 : 1 }}
+                          onKeyDown={e => e.key === 'Enter' && setSelectedZone(loc)}
+                          style={{ border: 0, borderRadius: 12, marginBottom: 10, opacity: zone?.isClosed ? 0.6 : 1, cursor: 'pointer' }}
                         >
                           <div className="flex-grow-1">
                             <div className="fw-semibold">{loc.location}</div>
-                            <div className={`small ${selectedZone?.location === loc.location ? 'text-white-50' : 'text-muted'}`}>
+                            <div className={`small ${isSelected ? 'text-white-50' : 'text-muted'}`}>
                               {zone?.isClosed ? (
-                                <>
-                                  <i className="mdi mdi-lock-outline me-1" />
-                                  Closed - Risk: 0%
-                                </>
+                                <><i className="mdi mdi-lock-outline me-1" />Closed - Risk: 0%</>
                               ) : (
-                                <>
-                                  Risk Score: {loc.riskScore?.toFixed(2) || '0.00'}%
-                                </>
+                                <>Risk Score: {loc.riskScore?.toFixed(2) || '0.00'}%</>
                               )}
                             </div>
                           </div>
-                          <div className="d-flex gap-2 align-items-center">
+                          <div className="d-flex gap-2 align-items-center flex-shrink-0">
                             <Pill tone={zone?.isClosed ? 'secondary' : riskTone(loc.riskLevel)} icon="mdi-speedometer">
                               {zone?.isClosed ? 'CLOSED' : loc.riskLevel}
                             </Pill>
-                            {isAdmin && (
+                            {isAdmin && zone?._id && (
                               <button
                                 type="button"
-                                className={`btn btn-sm ${zone?.isClosed ? 'btn-success' : 'btn-warning'}`}
+                                className={`btn btn-sm ${zone.isClosed ? 'btn-success' : 'btn-warning'}`}
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  toggleZoneClosure(zone?._id, loc.location);
+                                  toggleZoneClosure(zone._id, loc.location);
                                 }}
-                                title={zone?.isClosed ? 'Reopen zone' : 'Close zone'}
+                                title={zone.isClosed ? 'Reopen zone' : 'Close zone'}
+                                style={{ minWidth: 36, minHeight: 36 }}
                               >
-                                <i className={`mdi ${zone?.isClosed ? 'mdi-lock-open-outline' : 'mdi-lock-outline'}`} />
+                                <i className={`mdi ${zone.isClosed ? 'mdi-lock-open-outline' : 'mdi-lock-outline'}`} />
                               </button>
                             )}
                           </div>
-                        </button>
+                        </div>
                       );
                     })}
                   </div>

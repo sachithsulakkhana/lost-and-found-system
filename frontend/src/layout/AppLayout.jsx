@@ -101,19 +101,15 @@ export default function AppLayout({ children }) {
       { label: 'My Devices', to: '/devices', icon: 'mdi-devices' },
       { label: 'Device Monitoring', to: '/monitoring', icon: 'mdi-eye' },
       { label: 'Learning Insights', to: '/learning', icon: 'mdi-brain' },
-      { label: 'Calendar', to: '/calendar', icon: 'mdi-calendar-month' },
       { label: 'Alerts', to: '/alerts', icon: 'mdi-bell-alert-outline' },
     ] : studentRestricted;
 
     const admin = [
       { label: 'Dashboard', to: '/dashboard', icon: 'mdi-view-dashboard' },
       { label: 'Risk Dashboard', to: '/risk-dashboard', icon: 'mdi-map-marker-radius' },
-      { label: 'Booking Approvals', to: '/admin/booking-approvals', icon: 'mdi-check-decagram' },
       { label: 'Alerts', to: '/alerts', icon: 'mdi-bell-alert-outline' },
       { label: 'User Management', to: '/admin/users', icon: 'mdi-account-multiple' },
       { label: 'Zone Management', to: '/admin/zones', icon: 'mdi-map-marker-multiple' },
-      { label: 'All Bookings', to: '/admin/bookings', icon: 'mdi-calendar-text' },
-      { label: 'Calendar Events', to: '/admin/calendar', icon: 'mdi-calendar' },
     ];
 
     return user?.role === 'admin' ? admin : student;
