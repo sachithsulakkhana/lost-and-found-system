@@ -318,8 +318,15 @@ class AnomalyDetectionService {
         location: activityData.location
       });
 
-      // WebSocket: wakes any open browser tab of the owner
-      wsService.broadcastAlarmToOwner(device.ownerId, deviceId);
+      // WebSocket: send anomaly_alert (amber panel) ONLY to the owner's designated sessions
+      wsService.broadcastToDesignated(device.ownerId, 'anomaly_alert', {
+        alert,
+        deviceId: deviceId.toString(),
+        deviceName: device?.name ?? 'Unknown',
+        anomalyScore: score,
+        location: activityData.location,
+        timestamp: new Date().toISOString(),
+      });
       // Web Push: reaches the owner even when the browser is closed
       pushService.sendAlarmToOwner(device.ownerId, device?.name ?? 'Unknown', 'BEHAVIORAL_ANOMALY')
         .catch(err => console.error('Push notification error:', err));
