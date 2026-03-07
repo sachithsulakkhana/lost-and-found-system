@@ -230,7 +230,17 @@ export default function TheftGuard() {
     return () => document.removeEventListener('visibilitychange', handleVisibility);
   }, [myDeviceId, startSiren]);
 
-  // ── Heartbeat (1 min) ───────────────────────────────────────────
+  // ── Pulse (every 5 s) — fast keep-alive, no GPS needed ─────────
+  useEffect(() => {
+    if (!myDeviceId) return;
+    const t = setInterval(() => {
+      if (document.hidden) return;
+      api.post('/monitoring/pulse', { deviceId: myDeviceId }).catch(() => {});
+    }, 5000);
+    return () => clearInterval(t);
+  }, [myDeviceId]);
+
+  // ── Heartbeat (30 sec) — GPS movement check ─────────────────────
   useEffect(() => {
     if (!myDeviceId) return;
     const tick = async () => {
@@ -246,7 +256,7 @@ export default function TheftGuard() {
         console.debug('[TheftGuard] heartbeat skipped:', e.message);
       }
     };
-    const t = setInterval(tick, 60 * 1000);
+    const t = setInterval(tick, 30 * 1000);
     return () => clearInterval(t);
   }, [myDeviceId, startSiren]);
 

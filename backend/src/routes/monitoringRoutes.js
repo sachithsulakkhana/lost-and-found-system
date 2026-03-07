@@ -440,8 +440,24 @@ router.post('/wake-ping', async (req, res) => {
 });
 
 /**
+ * POST /api/monitoring/pulse
+ * Lightweight keep-alive — no GPS needed. Just stamps device.lastSeen.
+ * Called every 5 s so offline detection fires within ~10 s of phone going off.
+ */
+router.post('/pulse', requireAuth, async (req, res) => {
+  try {
+    const { deviceId } = req.body;
+    if (!deviceId) return res.status(400).json({ error: 'deviceId required' });
+    await Device.findByIdAndUpdate(deviceId, { lastSeen: new Date() });
+    res.json({ ok: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
  * POST /api/monitoring/heartbeat
- * Sent by TheftGuard every 5 minutes while the app is open (lid-open coverage).
+ * Sent by TheftGuard periodically while the app is open (lid-open coverage).
  * Compares current GPS with the last saved DevicePing — alarms if moved >55 m.
  * Also saves a new DevicePing so the reference point stays up-to-date.
  */
