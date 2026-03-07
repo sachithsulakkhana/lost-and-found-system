@@ -7,6 +7,10 @@ const mlService = require('./mlService');
 const wsService = require('./wsService');
 const { sendSMS, formatPhoneNumber, validatePhoneNumber } = require('./smsService');
 
+// Cooldown: don't re-send anomaly notification for same device within 10 minutes
+const ANOMALY_NOTIF_COOLDOWN_MS = 10 * 60 * 1000;
+const lastAnomalyNotifAt = new Map(); // deviceId → timestamp
+
 function haversineMeters(lat1, lon1, lat2, lon2) {
   const R = 6371000;
   const toRad = (d) => (d * Math.PI) / 180;
@@ -123,6 +127,11 @@ async function ingestPing(payload, { source = 'http' } = {}) {
     const anomalyScore = await mlService.calculateAnomalyScore(device._id, pingData);
     pingData.anomalyScore = anomalyScore;
     if (mlService.shouldGenerateAlert(anomalyScore)) {
+      const deviceKey = device._id.toString();
+      const lastSent = lastAnomalyNotifAt.get(deviceKey) || 0;
+      const now = Date.now();
+      const withinCooldown = (now - lastSent) < ANOMALY_NOTIF_COOLDOWN_MS;
+
       const alert = await Alert.create({
         deviceId: device._id,
         type: 'ANOMALY',
@@ -130,15 +139,20 @@ async function ingestPing(payload, { source = 'http' } = {}) {
         message: `Unusual activity detected on "${device.name}" (score: ${anomalyScore.toFixed(2)})`,
         location: { lat, lng }
       });
-      // Broadcast anomaly alert ONLY to the owner's designated device sessions
-      wsService.broadcastToDesignated(device.ownerId, 'anomaly_alert', {
-        alert,
-        deviceId: device._id.toString(),
-        deviceName: device.name,
-        anomalyScore,
-        location: { lat, lng },
-        timestamp: new Date()
-      });
+
+      // Only broadcast real-time notification if outside cooldown window
+      if (!withinCooldown) {
+        lastAnomalyNotifAt.set(deviceKey, now);
+        // Broadcast anomaly alert ONLY to the owner's designated device sessions
+        wsService.broadcastToDesignated(device.ownerId, 'anomaly_alert', {
+          alert,
+          deviceId: deviceKey,
+          deviceName: device.name,
+          anomalyScore,
+          location: { lat, lng },
+          timestamp: new Date()
+        });
+      }
 
       // Send SMS reminder if device owner has phone number
       if (device.ownerPhone && validatePhoneNumber(device.ownerPhone)) {

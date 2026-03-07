@@ -1,10 +1,19 @@
 const DeviceActivity = require('../models/DeviceActivity');
 const Device = require('../models/Device');
 const Alert = require('../models/Alert');
+const LearnedPattern = require('../models/LearnedPattern');
 const wsService = require('./wsService');
 const pushService = require('./pushService');
 const { sendSMS, formatPhoneNumber } = require('./smsService');
 const User = require('../models/User');
+
+// Cooldown: don't re-send anomaly WS notification for same device within 10 minutes
+const ANOMALY_NOTIF_COOLDOWN_MS = 10 * 60 * 1000;
+const lastAnomalyNotifAt = new Map(); // deviceId → timestamp
+
+// Learned-pattern match tolerances (same as mlService)
+const PATTERN_DIST_THRESHOLD = 0.0005; // ~55 metres in degrees
+const PATTERN_HOUR_THRESHOLD = 2;      // ±2 hours
 
 // Retrain after every N new (post-learning) activities
 const RETRAIN_EVERY = 50;
@@ -277,6 +286,23 @@ class AnomalyDetectionService {
         return { isAnomaly: false, score: 0, reason: 'LEARNING_PHASE' };
       }
 
+      // Check owner-confirmed normal patterns — skip detection if this location+time is whitelisted
+      if (activityData.location?.lat != null) {
+        const patterns = await LearnedPattern.find({ deviceId });
+        const currentHour = activityData.timestamp
+          ? new Date(activityData.timestamp).getHours()
+          : new Date().getHours();
+        for (const p of patterns) {
+          const dist = Math.sqrt(
+            Math.pow(activityData.location.lat - p.lat, 2) +
+            Math.pow(activityData.location.lng - p.lng, 2)
+          );
+          if (dist < PATTERN_DIST_THRESHOLD && Math.abs(currentHour - p.hourOfDay) <= PATTERN_HOUR_THRESHOLD) {
+            return { isAnomaly: false, score: 0, reason: 'CONFIRMED_NORMAL' };
+          }
+        }
+      }
+
       const model = await this._getOrLoadModel(deviceId);
       if (!model) {
         return { isAnomaly: false, score: 0, reason: 'MODEL_NOT_READY' };
@@ -318,15 +344,20 @@ class AnomalyDetectionService {
         location: activityData.location
       });
 
-      // WebSocket: send anomaly_alert (amber panel) ONLY to the owner's designated sessions
-      wsService.broadcastToDesignated(device.ownerId, 'anomaly_alert', {
-        alert,
-        deviceId: deviceId.toString(),
-        deviceName: device?.name ?? 'Unknown',
-        anomalyScore: score,
-        location: activityData.location,
-        timestamp: new Date().toISOString(),
-      });
+      // WebSocket: only notify once per 10-minute cooldown window
+      const deviceKey = deviceId.toString();
+      const lastSent = lastAnomalyNotifAt.get(deviceKey) || 0;
+      if (Date.now() - lastSent >= ANOMALY_NOTIF_COOLDOWN_MS) {
+        lastAnomalyNotifAt.set(deviceKey, Date.now());
+        wsService.broadcastToDesignated(device.ownerId, 'anomaly_alert', {
+          alert,
+          deviceId: deviceKey,
+          deviceName: device?.name ?? 'Unknown',
+          anomalyScore: score,
+          location: activityData.location,
+          timestamp: new Date().toISOString(),
+        });
+      }
       // Web Push: reaches the owner even when the browser is closed
       pushService.sendAlarmToOwner(device.ownerId, device?.name ?? 'Unknown', 'BEHAVIORAL_ANOMALY')
         .catch(err => console.error('Push notification error:', err));
