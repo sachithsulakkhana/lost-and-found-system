@@ -63,6 +63,7 @@ export default function TheftGuard() {
   const [alarm,           setAlarm]           = useState(false);
   const [alarmDeviceName, setAlarmDeviceName] = useState('');
   const [isDesignated,    setIsDesignated]    = useState(false);
+  const isDesignatedRef = useRef(false); // always-current ref for WS closure
   const [suppressLeft,    setSuppressLeft]    = useState(0);
   const countdownRef = useRef(null);
 
@@ -71,12 +72,20 @@ export default function TheftGuard() {
   // { deviceId, deviceName, score, lat, lng, hourOfDay, dayOfWeek, alertId }
   const [learningNote, setLearningNote] = useState(''); // optional note from user
 
-  // Fetch designated status when mount / when myDeviceId changes
+  // Keep ref in sync with state
+  useEffect(() => { isDesignatedRef.current = isDesignated; }, [isDesignated]);
+
+  // Fetch designated status — match by _id OR fingerprint as fallback
   useEffect(() => {
-    if (!myDeviceId) return;
+    const currentFp = localStorage.getItem('deviceId');
     api.get('/devices').then(({ data }) => {
       if (!Array.isArray(data)) return;
-      const mine = data.find(d => d._id === myDeviceId);
+      const mine = data.find(d => d._id === myDeviceId)
+                || (currentFp ? data.find(d => d.deviceFingerprint === currentFp) : null);
+      // Fix enrolledDeviceId if fingerprint lookup found a better match
+      if (mine && mine._id !== myDeviceId) {
+        localStorage.setItem('enrolledDeviceId', mine._id);
+      }
       setIsDesignated(!!mine?.isDesignated);
     }).catch(() => {});
   }, [myDeviceId]);
@@ -156,7 +165,7 @@ export default function TheftGuard() {
       ws.onmessage = (event) => {
         try {
           const msg = JSON.parse(event.data);
-          if (!isDesignated) return; // non-designated devices receive nothing
+          if (!isDesignatedRef.current) return; // non-designated devices receive nothing
 
           if (msg.type === 'alarm') {
             startSiren(msg.payload?.deviceId, msg.payload?.deviceName || '');
