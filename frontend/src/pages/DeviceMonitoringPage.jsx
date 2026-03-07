@@ -93,6 +93,13 @@ export default function DeviceMonitoringPage() {
     }
   };
 
+  // Live ping → update lastSeen + recent activities in real-time
+  const handlePingSaved = useCallback((ping) => {
+    if (!ping) return;
+    setMonitoringStatus(prev => prev ? { ...prev, lastSeen: ping.timestamp || new Date().toISOString() } : prev);
+    setRecentActivities(prev => [ping, ...prev].slice(0, 50));
+  }, []);
+
   // Instant anomaly notification handler
   const handleAnomalyDetected = useCallback((pingOrAlert) => {
     const score = pingOrAlert.anomalyScore || 0;
@@ -285,6 +292,7 @@ export default function DeviceMonitoringPage() {
                 <DevicePathMap
                   deviceId={selectedDeviceId}
                   onAnomalyDetected={handleAnomalyDetected}
+                  onPingSaved={handlePingSaved}
                 />
               </div>
             </div>

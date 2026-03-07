@@ -18,7 +18,7 @@ function FitBounds({ positions }) {
 
 const ANOMALY_THRESHOLD = 0.5;
 
-export default function DevicePathMap({ deviceId, onAnomalyDetected }) {
+export default function DevicePathMap({ deviceId, onAnomalyDetected, onPingSaved }) {
   const [pings, setPings] = useState([]);
   const [loading, setLoading] = useState(false);
   const [timeRange, setTimeRange] = useState('24h');
@@ -84,6 +84,7 @@ export default function DevicePathMap({ deviceId, onAnomalyDetected }) {
           if (msg?.type === 'ping_saved' && msg.payload?.ping) {
             const newPing = msg.payload.ping;
             setPings(prev => [...prev, newPing]);
+            onPingSaved?.(newPing);
 
             // Instant anomaly check
             if (newPing.anomalyScore >= ANOMALY_THRESHOLD && !notifiedRef.current.has(newPing._id)) {
