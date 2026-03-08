@@ -122,8 +122,12 @@ async function ingestPing(payload, { source = 'http' } = {}) {
     }
   }
 
-  // Only score anomalies for *valid* pings
-  if (device.status === 'ACTIVE' && pingData.valid) {
+  // Only score anomalies for *valid* pings; skip first ping after a long offline period
+  // so startup doesn't generate a false anomaly when the device just came back online.
+  const WAKEUP_GRACE_MS = 5 * 60 * 1000;
+  const wasOfflineLong = !device.lastSeen ||
+    (Date.now() - new Date(device.lastSeen).getTime()) > WAKEUP_GRACE_MS;
+  if (device.status === 'ACTIVE' && pingData.valid && !wasOfflineLong) {
     const anomalyScore = await mlService.calculateAnomalyScore(device._id, pingData);
     pingData.anomalyScore = anomalyScore;
     if (mlService.shouldGenerateAlert(anomalyScore)) {

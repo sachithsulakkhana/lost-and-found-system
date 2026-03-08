@@ -483,13 +483,18 @@ router.post('/heartbeat', async (req, res) => {
     const lastPing = await DevicePing.findOne({ deviceId }).sort({ timestamp: -1 });
 
     if (lastPing?.location?.lat != null && lastPing?.location?.lng != null) {
-      const dist = Math.sqrt(
-        Math.pow(lat - lastPing.location.lat, 2) +
-        Math.pow(lng - lastPing.location.lng, 2)
-      );
-      if (dist > 0.0005) {
-        alarm = true;
-        reason = 'LOCATION_CHANGED';
+      // Only compare against a recent ping — if the device just came back online after
+      // being off for >10 min, the stale reference would cause a false theft alarm.
+      const pingAgeMs = Date.now() - new Date(lastPing.timestamp).getTime();
+      if (pingAgeMs < 10 * 60 * 1000) {
+        const dist = Math.sqrt(
+          Math.pow(lat - lastPing.location.lat, 2) +
+          Math.pow(lng - lastPing.location.lng, 2)
+        );
+        if (dist > 0.0005) {
+          alarm = true;
+          reason = 'LOCATION_CHANGED';
+        }
       }
     }
 
