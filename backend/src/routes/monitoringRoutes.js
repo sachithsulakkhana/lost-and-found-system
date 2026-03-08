@@ -448,7 +448,7 @@ router.post('/wake-ping', async (req, res) => {
  * offlineAlertSentAt so the 2-min cooldown starts fresh from reconnect.
  * This prevents a false startup alarm in the brief gap before the first pulse.
  */
-router.post('/pulse', requireAuth, async (req, res) => {
+router.post('/pulse', async (req, res) => {
   try {
     const { deviceId } = req.body;
     if (!deviceId) return res.status(400).json({ error: 'deviceId required' });

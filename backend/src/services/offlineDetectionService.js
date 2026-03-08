@@ -42,7 +42,7 @@ async function checkOfflineDevices() {
             { alarmSuppressedUntil: { $lt: now } }
           ]
         },
-        // 4. Cooldown: don't re-alert within 5 min
+        // 4. Cooldown: don't re-alert within 2 min
         {
           $or: [
             { offlineAlertSentAt: null },

@@ -4,7 +4,7 @@
  * Rules:
  *  - ONLY designated devices show alarm overlays / play sirens
  *  - Non-designated devices receive nothing
- *  - "It's me — ignore" suppresses alarms for the MONITORED device for 5 minutes
+ *  - "It's me — ignore" suppresses alarms for the MONITORED device for 2 minutes
  *  - After 5 minutes, if device still offline/anomalous, alarm re-fires
  */
 
@@ -126,7 +126,7 @@ export default function TheftGuard() {
     if (itsMe) {
       const targetId = alarmingIdRef.current;
       if (targetId) {
-        // Tell backend: suppress alarms for this monitored device for 5 minutes
+        // Tell backend: suppress alarms for this monitored device for 2 minutes
         api.post('/monitoring/dismiss-alarm', { deviceId: targetId }).catch(() => {});
         // Local suppression so the overlay won't re-appear within this tab's session either
         localStorage.setItem(`alarmSuppressed_${targetId}`, String(Date.now() + SUPPRESS_MS));
@@ -156,9 +156,11 @@ export default function TheftGuard() {
       wsRef.current = ws;
 
       ws.onopen = () => {
+        // Use ref so we always send the current designation status,
+        // not the stale value captured when connect() was defined.
         ws.send(JSON.stringify({
           type: 'subscribe',
-          payload: { deviceId: myDeviceId, userId, isDesignated }
+          payload: { deviceId: myDeviceId, userId, isDesignated: isDesignatedRef.current }
         }));
       };
 
@@ -206,12 +208,21 @@ export default function TheftGuard() {
         sleepRef.current = { lat: loc?.lat, lng: loc?.lng, time: Date.now() };
         const token = localStorage.getItem('token');
         const base  = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+        const headers = {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        };
+        // Send a fresh pulse immediately on hide — mobile OSes (especially iOS)
+        // suspend setInterval when app backgrounds, so this guarantees lastSeen
+        // is up-to-date before the OS pauses the app.
+        fetch(`${base}/monitoring/pulse`, {
+          method: 'POST', keepalive: true,
+          headers,
+          body: JSON.stringify({ deviceId: myDeviceId }),
+        }).catch(() => {});
         fetch(`${base}/monitoring/sleep-ping`, {
           method: 'POST', keepalive: true,
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
+          headers,
           body: JSON.stringify({ deviceId: myDeviceId }),
         }).catch(() => {});
       } else {
