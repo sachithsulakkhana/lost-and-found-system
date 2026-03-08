@@ -103,7 +103,7 @@ export default function AlertsPage() {
                       </>
                     ) : alert.deviceId ? (
                       <>
-                        <Typography variant="body2">{alert.deviceId?.deviceName || 'Unknown'}</Typography>
+                        <Typography variant="body2">{alert.deviceId?.name || 'Unknown'}</Typography>
                         <Typography variant="caption" color="text.secondary">
                           {alert.deviceId?.deviceType || 'N/A'}
                         </Typography>

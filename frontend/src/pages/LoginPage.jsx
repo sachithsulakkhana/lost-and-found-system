@@ -29,12 +29,12 @@ export default function LoginPage() {
         <div className="row g-0">
           <div className="col-lg-6 d-none d-lg-block">
             <div className="cp-auth-left h-100">
-              <h2 className="fw-bold mb-3">Lost &amp; Found</h2>
+              <h2 className="fw-bold mb-3">SLIIT Device Tracking</h2>
               <p className="opacity-90 mb-4">
-                Sign in to report lost items, manage devices, and track alerts on the SLIIT campus.
+                Sign in to manage devices, monitor locations, and track alerts on the SLIIT campus.
               </p>
               <div className="d-flex gap-2 align-items-center">
-                <span className="badge bg-light text-dark">Lost &amp; Found</span>
+                <span className="badge bg-light text-dark">Device Tracking</span>
                 <span className="badge bg-light text-dark">SLIIT</span>
                 <span className="badge bg-light text-dark">Campus Security</span>
               </div>
@@ -94,7 +94,7 @@ export default function LoginPage() {
               </form>
 
               <div className="text-center text-muted small mt-4">
-                Use your SLIIT Lost &amp; Found account credentials.
+                Use your SLIIT Device Tracking account credentials.
               </div>
             </div>
           </div>

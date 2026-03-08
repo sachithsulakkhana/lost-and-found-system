@@ -132,7 +132,7 @@ export default function AppLayout({ children }) {
       <aside className={`cp-sidebar${sidebarOpen ? ' open' : ''}`}>
         <div className="brand">
           <span className="logo-dot" />
-          <div className="fw-bold">Lost &amp; Found</div>
+          <div className="fw-bold">Device Tracking</div>
           <div className="ms-2 small opacity-75">SLIIT</div>
           {/* Close button visible only on mobile */}
           <button
@@ -145,7 +145,7 @@ export default function AppLayout({ children }) {
         </div>
 
         <div className="nav-section">
-          <div className="nav-title">{user?.role === 'admin' ? 'Admin' : 'Student'} menu</div>
+          <div className="nav-title">{user?.role === 'admin' ? 'Admin' : ''} Menu</div>
           <nav className="nav flex-column">
             {menu.map((m) => (
               <NavLink key={m.to} to={m.to} className={({ isActive }) => `nav-link cp-nav ${isActive ? 'active' : ''}`.trim()}>
@@ -170,7 +170,7 @@ export default function AppLayout({ children }) {
               >
                 <i className="mdi mdi-menu" />
               </button>
-              <div className="fw-bold">Lost &amp; Found</div>
+              <div className="fw-bold">Device Tracking</div>
               <div className="d-none d-md-block" style={{ width: 360 }}>
                 <div className="input-group input-group-sm">
                   <span className="input-group-text bg-white"><i className="mdi mdi-magnify" /></span>
@@ -204,7 +204,7 @@ export default function AppLayout({ children }) {
         </div>
 
         <footer className="py-3 text-center text-muted small">
-          &copy; {new Date().getFullYear()} Lost &amp; Found &middot; SLIIT
+          &copy; {new Date().getFullYear()} SLIIT Device Tracking
         </footer>
       </main>
     </div>

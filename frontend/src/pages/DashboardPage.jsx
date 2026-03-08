@@ -164,12 +164,11 @@ export default function DashboardPage() {
                 <a className="btn btn-outline-dark" href="/alerts">
                   <i className="mdi mdi-bell-alert-outline me-1" /> View alerts
                 </a>
-                <a className="btn btn-outline-dark" href={isAdmin ? "/admin/booking-approvals" : "/bookings"}>
-                  <i className="mdi mdi-calendar-check me-1" /> {isAdmin ? 'Review bookings' : 'My bookings'}
-                </a>
-                <a className="btn btn-outline-dark" href={isAdmin ? "/admin/zones" : "/zone-booking"}>
-                  <i className="mdi mdi-map me-1" /> {isAdmin ? 'Manage zones' : 'Book a zone'}
-                </a>
+                {isAdmin && (
+                  <a className="btn btn-outline-dark" href="/admin/zones">
+                    <i className="mdi mdi-map me-1" /> Manage zones
+                  </a>
+                )}
                 <a className="btn btn-outline-dark" href="/devices">
                   <i className="mdi mdi-devices me-1" /> Devices
                 </a>
@@ -178,7 +177,7 @@ export default function DashboardPage() {
               <div className="mt-4 p-3 rounded" style={{ background: 'rgba(182,109,255,.10)', border: '1px solid rgba(182,109,255,.20)' }}>
                 <div className="fw-bold mb-1">Tip</div>
                 <div className="small text-muted">
-                  Use the <span className="fw-semibold">Risk Dashboard</span> to identify hotspots before you book a zone.
+                  Use the <span className="fw-semibold">Risk Dashboard</span> to identify hotspots and monitor campus zones.
                 </div>
               </div>
             </div>

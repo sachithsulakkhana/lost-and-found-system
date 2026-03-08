@@ -90,7 +90,7 @@ export default function RegisterPage() {
             <div className="cp-auth-left h-100">
               <h2 className="fw-bold mb-3">Create your account</h2>
               <p className="opacity-90 mb-4">
-                Join the campus Lost &amp; Found system to track devices, manage bookings, and stay informed.
+                Join the SLIIT Device Tracking system to monitor devices and stay informed.
               </p>
               <div className="d-flex gap-2 flex-wrap">
                 {steps.map((s, idx) => (

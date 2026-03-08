@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Alert = require('../models/Alert');
+const Device = require('../models/Device');
 const { requireAuth, requireApproved } = require('../middleware/auth');
 
 router.use(requireAuth);
@@ -10,12 +11,19 @@ router.get('/', async (req, res) => {
   try {
     const { deviceId, isResolved } = req.query;
     const query = {};
-    
+
     if (deviceId) query.deviceId = deviceId;
     if (isResolved !== undefined) query.isResolved = isResolved === 'true';
-    
+
+    // Non-admin users only see alerts for their own devices
+    if (req.user.role !== 'admin') {
+      const myDevices = await Device.find({ ownerId: req.user._id }).select('_id');
+      const myDeviceIds = myDevices.map(d => d._id);
+      query.deviceId = deviceId ? deviceId : { $in: myDeviceIds };
+    }
+
     const alerts = await Alert.find(query)
-      .populate('deviceId', 'deviceName deviceType')
+      .populate('deviceId', 'name deviceType')
       .populate('storedItemId', 'itemName category status')
       .populate('userId', 'name email')
       .sort({ createdAt: -1 })
