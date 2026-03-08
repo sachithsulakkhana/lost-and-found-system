@@ -240,10 +240,11 @@ export default function TheftGuard() {
   }, [myDeviceId, startSiren]);
 
   // ── Pulse (every 5 s) — fast keep-alive, no GPS needed ─────────
+  // NOTE: runs even when document.hidden (screen off / background tab) so that
+  // normal screen-off doesn't falsely trigger the offline theft alarm.
   useEffect(() => {
     if (!myDeviceId) return;
     const t = setInterval(() => {
-      if (document.hidden) return;
       api.post('/monitoring/pulse', { deviceId: myDeviceId }).catch(() => {});
     }, 5000);
     return () => clearInterval(t);

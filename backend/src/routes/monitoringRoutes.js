@@ -443,12 +443,32 @@ router.post('/wake-ping', async (req, res) => {
  * POST /api/monitoring/pulse
  * Lightweight keep-alive — no GPS needed. Just stamps device.lastSeen.
  * Called every 5 s so offline detection fires within ~10 s of phone going off.
+ *
+ * Reconnect guard: if the device was offline (lastSeen stale), reset
+ * offlineAlertSentAt so the 2-min cooldown starts fresh from reconnect.
+ * This prevents a false startup alarm in the brief gap before the first pulse.
  */
 router.post('/pulse', requireAuth, async (req, res) => {
   try {
     const { deviceId } = req.body;
     if (!deviceId) return res.status(400).json({ error: 'deviceId required' });
-    await Device.findByIdAndUpdate(deviceId, { lastSeen: new Date() });
+
+    const device = await Device.findById(deviceId);
+    if (!device) return res.status(404).json({ error: 'Device not found' });
+
+    const now = new Date();
+    const update = { lastSeen: now };
+
+    // If this pulse arrives after the device was offline (gap > 8 s),
+    // treat it as a reconnect and reset the alert cooldown so the offline
+    // detector doesn't immediately fire again during the startup window.
+    const OFFLINE_GAP_MS = 8 * 1000;
+    const wasOffline = device.lastSeen && (now - device.lastSeen) > OFFLINE_GAP_MS;
+    if (wasOffline) {
+      update.offlineAlertSentAt = now;
+    }
+
+    await Device.findByIdAndUpdate(deviceId, update);
     res.json({ ok: true });
   } catch (error) {
     res.status(500).json({ error: error.message });
