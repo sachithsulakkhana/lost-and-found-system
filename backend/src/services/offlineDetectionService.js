@@ -15,8 +15,8 @@ const Alert  = require('../models/Alert');
 const wsService = require('./wsService');
 
 const OFFLINE_THRESHOLD_MS = 8  * 1000;       // 8 s offline → suspect
-const RECENTLY_SEEN_MS     = 5  * 60 * 1000;  // only alert if device was pulsing within last 5 min
-const COOLDOWN_MS          = 5  * 60 * 1000;  // don't re-alert within 5 min
+const RECENTLY_SEEN_MS     = 2  * 60 * 1000;  // only alert if device was pulsing within last 2 min
+const COOLDOWN_MS          = 2  * 60 * 1000;  // don't re-alert within 2 min
 const CHECK_INTERVAL_MS    = 3  * 1000;        // check every 3 s
 
 async function checkOfflineDevices() {
@@ -85,7 +85,7 @@ async function checkOfflineDevices() {
 }
 
 function start() {
-  console.log(`✅ Offline Detection Service started (threshold: 8 s, active-window: 5 min, check interval: 3 s)`);
+  console.log(`✅ Offline Detection Service started (threshold: 8 s, active-window: 2 min, cooldown: 2 min, check interval: 3 s)`);
   // Initial check after 5 s so the server has time to fully boot
   setTimeout(() => {
     checkOfflineDevices();

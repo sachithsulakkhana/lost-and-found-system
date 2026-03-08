@@ -13,7 +13,7 @@ import api from '../services/api';
 
 const MIN_SLEEP_MS     = 5000;           // ignore hides shorter than this
 const SIREN_DURATION_MS = 30000;         // auto-stop after 30 s
-const SUPPRESS_MS      = 5 * 60 * 1000; // "it's me" suppresses for 5 minutes
+const SUPPRESS_MS      = 2 * 60 * 1000; // "it's me" suppresses for 2 minutes
 
 function getWsUrl() {
   if (import.meta.env.VITE_WS_URL) return import.meta.env.VITE_WS_URL;
