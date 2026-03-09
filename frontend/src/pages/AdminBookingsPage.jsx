@@ -60,7 +60,7 @@ export default function AdminBookingsPage() {
               {bookings.map((b) => (
                 <TableRow key={b._id} hover>
                   <TableCell>{b.itemId?.itemName || '—'}</TableCell>
-                  <TableCell>{b.userId?.name || '—'}<br /><small>{b.userId?.email || ''}</small></TableCell>
+                  <TableCell>{b.userId?.role === 'student' ? '' : (b.userId?.name || '—')}<br /><small>{b.userId?.email || ''}</small></TableCell>
                   <TableCell>{new Date(b.start).toLocaleString()}</TableCell>
                   <TableCell>{new Date(b.end).toLocaleString()}</TableCell>
                   <TableCell><Chip size="small" label={b.status} /></TableCell>

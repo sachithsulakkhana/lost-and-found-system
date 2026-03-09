@@ -135,7 +135,7 @@ export default function AdminUsersPage() {
               <TableBody>
                 {users.map((u) => (
                   <TableRow key={u._id} hover sx={{ '&:hover': { bgcolor: 'rgba(102, 126, 234, 0.05)' } }}>
-                    <TableCell>{u.name}</TableCell>
+                    <TableCell>{u.role === 'student' ? '' : u.name}</TableCell>
                     <TableCell>{u.email}</TableCell>
                     <TableCell>{u.phone || '—'}</TableCell>
                     <TableCell>{u.preferredLanguage?.toUpperCase() || '—'}</TableCell>

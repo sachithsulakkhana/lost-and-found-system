@@ -115,7 +115,7 @@ function AdminBookingApprovalsPage() {
                   <div>
                     <h3 style={{ margin: '0 0 10px 0' }}>User Information</h3>
                     <p style={{ margin: '5px 0' }}>
-                      <strong>Name:</strong> {booking.userId?.name || 'Unknown'}
+                      <strong>Name:</strong> {booking.userId?.role === 'student' ? '' : (booking.userId?.name || 'Unknown')}
                     </p>
                     <p style={{ margin: '5px 0' }}>
                       <strong>Email:</strong> {booking.userId?.email || 'Unknown'}

@@ -188,7 +188,7 @@ export default function AppLayout({ children }) {
               </button>
               <div className="vr mx-1 d-none d-sm-block" />
               <div className="text-end d-none d-sm-block">
-                <div className="fw-semibold" style={{ lineHeight: 1.1 }}>{user?.name || 'User'}</div>
+                <div className="fw-semibold" style={{ lineHeight: 1.1 }}>{user?.role === 'student' ? '' : (user?.name || 'User')}</div>
                 <div className="small text-muted">{user?.role || 'member'}</div>
               </div>
               <button className="btn btn-sm btn-outline-dark" onClick={onLogout}>

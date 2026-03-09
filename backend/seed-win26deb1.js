@@ -13,7 +13,7 @@ require('dotenv').config({ path: './.env' });
 const mongoose = require('mongoose');
 
 const DEVICE_ID = '69a8060cc6f3d3b75291bf1f';  // Windows (Auto) / WIN-26DEB1
-const OWNER_ID  = '696b332a9812a2ebb6472040';  // John Student
+const OWNER_ID  = '696b332a9812a2ebb6472040';  // Student
 const ZONE_ID   = '696b332a9812a2ebb6472047';  // P and S Cafeteria (nearest zone)
 
 // Normal home location for this device
