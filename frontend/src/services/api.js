@@ -28,6 +28,9 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       console.error('❌ 401 Unauthorized - Invalid or missing token');
       console.error('   Response:', error.response.data);
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.href = '/login';
     } else if (error.response?.status === 403) {
       console.error('❌ 403 Forbidden - Account not approved or access denied');
       console.error('   Response:', error.response.data);

@@ -48,8 +48,8 @@ export default function DashboardPage() {
 
       if (user?.role === 'admin') {
         requests.push(
-          api.get('/auth/users').catch(() => ({ data: [] })),
-          api.get('/bookings').catch(() => ({ data: [] })),
+          api.get('/admin/users').catch(() => ({ data: [] })),
+          api.get('/bookings/admin').catch(() => ({ data: [] })),
           api.get('/risk/zones').catch(() => ({ data: [] })),
         );
       } else {
@@ -88,10 +88,13 @@ export default function DashboardPage() {
       <div className="d-flex align-items-center justify-content-between mb-4">
         <div>
           <h2 className="fw-bold mb-1">Dashboard</h2>
-          <div className="text-muted">A Connect Plus–style overview of your system.</div>
+          <div className="text-muted small">Real-time overview of your campus tracking system.</div>
         </div>
         <div className="d-flex gap-2">
-          <span className="badge cp-badge-soft">Live</span>
+          <span className="cp-badge-soft">
+            <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: '#6c47ff', marginRight: 6, verticalAlign: 'middle' }} />
+            Live
+          </span>
           <span className="badge text-bg-light border">Auto refresh 30s</span>
         </div>
       </div>
@@ -162,22 +165,27 @@ export default function DashboardPage() {
             <div className="cp-card-body">
               <div className="d-grid gap-2">
                 <a className="btn btn-outline-dark" href="/alerts">
-                  <i className="mdi mdi-bell-alert-outline me-1" /> View alerts
+                  <i className="mdi mdi-bell-alert-outline me-1" /> View Alerts
                 </a>
                 {isAdmin && (
                   <a className="btn btn-outline-dark" href="/admin/zones">
-                    <i className="mdi mdi-map me-1" /> Manage zones
+                    <i className="mdi mdi-map me-1" /> Manage Zones
                   </a>
                 )}
                 <a className="btn btn-outline-dark" href="/devices">
-                  <i className="mdi mdi-devices me-1" /> Devices
+                  <i className="mdi mdi-devices me-1" /> My Devices
+                </a>
+                <a className="btn cp-btn-primary" href="/risk-dashboard">
+                  <i className="mdi mdi-map-marker-radius me-1" /> Risk Dashboard
                 </a>
               </div>
 
-              <div className="mt-4 p-3 rounded" style={{ background: 'rgba(182,109,255,.10)', border: '1px solid rgba(182,109,255,.20)' }}>
-                <div className="fw-bold mb-1">Tip</div>
+              <div className="mt-4 p-3 rounded" style={{ background: 'rgba(108,71,255,.1)', border: '1px solid rgba(108,71,255,.2)', borderRadius: 12 }}>
+                <div className="fw-semibold mb-1 small" style={{ color: '#9b68ff' }}>
+                  <i className="mdi mdi-lightbulb-on me-1" /> Pro Tip
+                </div>
                 <div className="small text-muted">
-                  Use the <span className="fw-semibold">Risk Dashboard</span> to identify hotspots and monitor campus zones.
+                  Use the <span className="fw-semibold" style={{ color: '#9b68ff' }}>Risk Dashboard</span> to identify hotspots and monitor campus zones in real time.
                 </div>
               </div>
             </div>

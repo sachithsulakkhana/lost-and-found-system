@@ -12,7 +12,8 @@
       "Bash(\"C:/Users/sachi/AppData/Local/Python/bin/python3.exe\" generate_training_data.py)",
       "Bash(PYTHONUTF8=1 PYTHONIOENCODING=utf-8 \"C:/Users/sachi/AppData/Local/Python/bin/python3.exe\":*)",
       "Bash(git status -u)",
-      "Read(//c/Users/sachi/AppData/Local/Temp/claude/D--lost-and-found-ws-fallback/tasks/**)"
+      "Read(//c/Users/sachi/AppData/Local/Temp/claude/D--lost-and-found-ws-fallback/tasks/**)",
+      "WebFetch(domain:reclaim-rho.vercel.app)"
     ]
   }
 }

@@ -131,14 +131,15 @@ export default function AppLayout({ children }) {
 
       <aside className={`cp-sidebar${sidebarOpen ? ' open' : ''}`}>
         <div className="brand">
-          <span className="logo-dot" />
-          <div className="fw-bold">Device Tracking</div>
-          <div className="ms-2 small opacity-75">SLIIT</div>
-          {/* Close button visible only on mobile */}
+          <div className="logo-icon">R</div>
+          <div>
+            <div className="brand-name">Reclaim</div>
+            <div className="brand-sub">SLIIT Campus</div>
+          </div>
           <button
             className="btn btn-sm text-white ms-auto d-lg-none"
             onClick={() => setSidebarOpen(false)}
-            style={{ fontSize: '1.3rem' }}
+            style={{ fontSize: '1.3rem', lineHeight: 1 }}
           >
             <i className="mdi mdi-close" />
           </button>
@@ -161,39 +162,36 @@ export default function AppLayout({ children }) {
         <header className="cp-topbar d-flex align-items-center">
           <div className="container-fluid d-flex align-items-center justify-content-between">
             <div className="d-flex align-items-center gap-2">
-              {/* Hamburger button - visible only on mobile */}
               <button
-                className="btn btn-sm btn-light border d-lg-none"
+                className="btn btn-sm d-lg-none"
                 onClick={() => setSidebarOpen(true)}
                 title="Open menu"
                 type="button"
+                style={{ color: 'rgba(255,255,255,0.7)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, background: 'rgba(255,255,255,0.06)' }}
               >
                 <i className="mdi mdi-menu" />
               </button>
-              <div className="fw-bold">Device Tracking</div>
-              <div className="d-none d-md-block" style={{ width: 360 }}>
+              <div className="d-none d-md-block" style={{ width: 300 }}>
                 <div className="input-group input-group-sm">
-                  <span className="input-group-text bg-white"><i className="mdi mdi-magnify" /></span>
-                  <input className="form-control" placeholder="Search" />
+                  <span className="input-group-text"><i className="mdi mdi-magnify" /></span>
+                  <input className="form-control" placeholder="Search..." />
                 </div>
               </div>
             </div>
 
             <div className="d-flex align-items-center gap-2">
-              <button className="btn btn-sm btn-light border d-none d-sm-inline-block" title="Notifications" type="button">
-                <i className="mdi mdi-bell-outline" />
-              </button>
-              <button className="btn btn-sm btn-light border d-none d-sm-inline-block" title="Settings" type="button">
-                <i className="mdi mdi-cog-outline" />
+              <button className="btn btn-sm d-none d-sm-inline-flex align-items-center justify-content-center" title="Notifications" type="button"
+                style={{ color: 'rgba(255,255,255,0.6)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, background: 'rgba(255,255,255,0.06)', width: 32, height: 32 }}>
+                <i className="mdi mdi-bell-outline" style={{ fontSize: '1rem' }} />
               </button>
               <div className="vr mx-1 d-none d-sm-block" />
               <div className="text-end d-none d-sm-block">
-                <div className="fw-semibold" style={{ lineHeight: 1.1 }}>{user?.role === 'student' ? '' : (user?.name || 'User')}</div>
-                <div className="small text-muted">{user?.role || 'member'}</div>
+                <div className="fw-semibold small" style={{ lineHeight: 1.2, color: '#fff' }}>{user?.name || 'User'}</div>
+                <div style={{ fontSize: '.7rem', color: 'rgba(255,255,255,0.45)' }}>{user?.role || 'member'}</div>
               </div>
-              <button className="btn btn-sm btn-outline-dark" onClick={onLogout}>
+              <button className="btn btn-sm cp-btn-primary" onClick={onLogout} style={{ fontSize: '.78rem', padding: '5px 14px' }}>
                 <i className="mdi mdi-logout me-1" />
-                <span className="d-none d-sm-inline">Logout</span>
+                <span className="d-none d-sm-inline">Sign out</span>
               </button>
             </div>
           </div>
@@ -203,8 +201,8 @@ export default function AppLayout({ children }) {
           {children}
         </div>
 
-        <footer className="py-3 text-center text-muted small">
-          &copy; {new Date().getFullYear()} SLIIT Device Tracking
+        <footer className="py-3 text-center small" style={{ color: 'rgba(255,255,255,0.25)', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+          &copy; {new Date().getFullYear()} Reclaim &mdash; SLIIT Campus
         </footer>
       </main>
     </div>

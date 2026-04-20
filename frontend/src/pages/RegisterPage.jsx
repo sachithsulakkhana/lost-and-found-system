@@ -84,74 +84,51 @@ export default function RegisterPage() {
 
   return (
     <div className="cp-auth">
-      <div className="cp-auth-card">
-        <div className="row g-0">
-          <div className="col-lg-6 d-none d-lg-block">
-            <div className="cp-auth-left h-100">
-              <h2 className="fw-bold mb-3">Create your account</h2>
-              <p className="opacity-90 mb-4">
-                Join the SLIIT Device Tracking system to monitor devices and stay informed.
-              </p>
-              <div className="d-flex gap-2 flex-wrap">
-                {steps.map((s, idx) => (
-                  <span key={s} className={`badge ${idx <= activeStep ? 'bg-light text-dark' : 'bg-dark border border-light'}`}>{idx + 1}. {s}</span>
-                ))}
-              </div>
-              <div className="mt-4 small opacity-75">
-                Already registered? You can sign in anytime.
-              </div>
-            </div>
+      <div className="cp-auth-card" style={{ width: 'min(520px, 100%)' }}>
+        <div className="cp-auth-inner">
+          <div className="cp-auth-logo">
+            <div className="logo-icon">R</div>
+            <h2>{steps[activeStep]}</h2>
+            <p>Step {activeStep + 1} of {steps.length} &mdash; SLIIT Reclaim</p>
           </div>
 
-          <div className="col-lg-6">
-            <div className="cp-auth-right">
-              <div className="d-flex align-items-center justify-content-between mb-4">
-                <div>
-                  <div className="text-muted small">Step {activeStep + 1} of {steps.length}</div>
-                  <h3 className="fw-bold mb-0">{steps[activeStep]}</h3>
-                </div>
-                <div className="d-flex align-items-center gap-2">
-                  <span style={{ width: 10, height: 10, borderRadius: 999, background: 'linear-gradient(90deg, var(--cp-primary), var(--cp-primary-2))' }} />
-                  <span className="fw-bold">Connect+</span>
-                </div>
-              </div>
-
+          <div>
               {activeStep === 0 && (
                 <form onSubmit={handleRegister}>
                   <div className="mb-3">
                     <label className="form-label">Full name</label>
-                    <input className="form-control form-control-lg" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required disabled={loading} />
+                    <input className="form-control" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required disabled={loading} />
                   </div>
 
                   <div className="mb-3">
                     <label className="form-label">Email</label>
-                    <input className="form-control form-control-lg" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required disabled={loading} />
+                    <input className="form-control" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required disabled={loading} />
                   </div>
 
                   <div className="mb-3">
                     <label className="form-label">Phone</label>
-                    <input className="form-control form-control-lg" placeholder="10 digits" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} required disabled={loading} />
+                    <input className="form-control" placeholder="10 digits" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} required disabled={loading} />
                   </div>
 
                   <div className="row g-2">
                     <div className="col-md-6">
                       <label className="form-label">Password</label>
-                      <input className="form-control form-control-lg" type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required disabled={loading} />
+                      <input className="form-control" type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required disabled={loading} />
                     </div>
                     <div className="col-md-6">
                       <label className="form-label">Confirm</label>
-                      <input className="form-control form-control-lg" type="password" value={form.confirmPassword} onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })} required disabled={loading} />
+                      <input className="form-control" type="password" value={form.confirmPassword} onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })} required disabled={loading} />
                     </div>
                   </div>
 
                   <div className="mt-3 mb-4">
                     <label className="form-label">Preferred language</label>
-                    <select className="form-select form-select-lg" value={form.preferredLanguage} onChange={(e) => setForm({ ...form, preferredLanguage: e.target.value })} disabled={loading}>
+                    <select className="form-select" value={form.preferredLanguage} onChange={(e) => setForm({ ...form, preferredLanguage: e.target.value })} disabled={loading}>
                       {languages.map(l => <option key={l.code} value={l.code}>{l.label}</option>)}
                     </select>
                   </div>
 
-                  <button className="btn cp-btn-primary w-100 btn-lg" disabled={loading}>
+                  <button className="btn cp-btn-primary w-100" style={{ padding: '.65rem', fontSize: '.88rem' }} disabled={loading}>
                     {loading ? (
                       <span className="d-inline-flex align-items-center gap-2">
                         <span className="spinner-border spinner-border-sm" role="status" />
@@ -160,8 +137,9 @@ export default function RegisterPage() {
                     ) : 'CREATE ACCOUNT'}
                   </button>
 
-                  <div className="text-center text-muted small mt-3">
-                    Already have an account? <Link to="/login" className="fw-semibold">Sign in</Link>
+                  <div className="text-center small mt-3" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                    Already have an account?{' '}
+                    <Link to="/login" style={{ color: 'var(--cp-primary-2)', fontWeight: 600 }}>Sign in</Link>
                   </div>
                 </form>
               )}
@@ -173,9 +151,9 @@ export default function RegisterPage() {
                   </div>
                   <div className="mb-3">
                     <label className="form-label">OTP</label>
-                    <input className="form-control form-control-lg" placeholder="123456" value={otp} onChange={(e) => setOtp(e.target.value)} disabled={loading} required />
+                    <input className="form-control" placeholder="123456" value={otp} onChange={(e) => setOtp(e.target.value)} disabled={loading} required />
                   </div>
-                  <button className="btn cp-btn-primary w-100 btn-lg" disabled={loading}>
+                  <button className="btn cp-btn-primary w-100" style={{ padding: '.65rem', fontSize: '.88rem' }} disabled={loading}>
                     {loading ? (
                       <span className="d-inline-flex align-items-center gap-2">
                         <span className="spinner-border spinner-border-sm" role="status" />
@@ -183,8 +161,9 @@ export default function RegisterPage() {
                       </span>
                     ) : 'VERIFY OTP'}
                   </button>
-                  <div className="text-center text-muted small mt-3">
-                    Wrong email? <button type="button" className="btn btn-link btn-sm p-0" onClick={() => setActiveStep(0)}>Go back</button>
+                  <div className="text-center small mt-3" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                    Wrong email?{' '}
+                    <button type="button" className="btn btn-link btn-sm p-0" style={{ color: 'var(--cp-primary-2)' }} onClick={() => setActiveStep(0)}>Go back</button>
                   </div>
                 </form>
               )}
@@ -201,7 +180,6 @@ export default function RegisterPage() {
                 </div>
               )}
 
-            </div>
           </div>
         </div>
       </div>
