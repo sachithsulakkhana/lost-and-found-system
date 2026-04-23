@@ -14,8 +14,8 @@ import AdminZonesPage from './pages/AdminZonesPage';
 import RiskDashboardPage from './pages/RiskDashboardPage';
 import DeviceLearningPage from './pages/DeviceLearningPage';
 
-const STUDENT_EMAIL = 'student@example.com';
-const STUDENT_PASSWORD = 'student123';
+const DEFAULT_EMAIL = 'student@example.com';
+const DEFAULT_PASSWORD = 'student123';
 
 // Auto-login as student if no token present
 function AutoAuthRoute({ children }) {
@@ -26,7 +26,7 @@ function AutoAuthRoute({ children }) {
       setReady(true);
       return;
     }
-    api.post('/auth/login', { email: STUDENT_EMAIL, password: STUDENT_PASSWORD })
+    api.post('/auth/login', { email: DEFAULT_EMAIL, password: DEFAULT_PASSWORD })
       .then(({ data }) => {
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));

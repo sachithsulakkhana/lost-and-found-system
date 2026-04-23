@@ -59,7 +59,9 @@ export default function AppLayout({ children }) {
 
   useEffect(() => {
     setUser(getUser());
+  }, [location.pathname]);
 
+  useEffect(() => {
     // If not already marked enrolled, check DB (returning user from a prior session).
     // Match by THIS browser's fingerprint so TheftGuard attaches to the correct device.
     if (!localStorage.getItem('enrolledDeviceId')) {
@@ -131,11 +133,8 @@ export default function AppLayout({ children }) {
 
       <aside className={`cp-sidebar${sidebarOpen ? ' open' : ''}`}>
         <div className="brand">
-          <div className="logo-icon">R</div>
-          <div>
-            <div className="brand-name">Reclaim</div>
-            <div className="brand-sub">SLIIT Campus</div>
-          </div>
+          <img src="/reclaim-logo.png" alt="Reclaim" style={{ width: 32, height: 32, borderRadius: 8, objectFit: 'cover' }} />
+          <div className="brand-name">Reclaim</div>
           <button
             className="btn btn-sm text-white ms-auto d-lg-none"
             onClick={() => setSidebarOpen(false)}
@@ -171,7 +170,11 @@ export default function AppLayout({ children }) {
               >
                 <i className="mdi mdi-menu" />
               </button>
-              <div className="d-none d-md-block" style={{ width: 300 }}>
+              <div className="d-flex align-items-center gap-2 d-none d-lg-flex">
+                <img src="/reclaim-logo.png" alt="Reclaim" style={{ width: 28, height: 28, borderRadius: 6, objectFit: 'cover' }} />
+                <span style={{ fontWeight: 700, fontSize: '1rem', color: '#fff', letterSpacing: '-.01em' }}>Reclaim</span>
+              </div>
+              <div className="d-none d-md-block" style={{ width: 260 }}>
                 <div className="input-group input-group-sm">
                   <span className="input-group-text"><i className="mdi mdi-magnify" /></span>
                   <input className="form-control" placeholder="Search..." />
@@ -185,10 +188,6 @@ export default function AppLayout({ children }) {
                 <i className="mdi mdi-bell-outline" style={{ fontSize: '1rem' }} />
               </button>
               <div className="vr mx-1 d-none d-sm-block" />
-              <div className="text-end d-none d-sm-block">
-                <div className="fw-semibold small" style={{ lineHeight: 1.2, color: '#fff' }}>{user?.name || 'User'}</div>
-                <div style={{ fontSize: '.7rem', color: 'rgba(255,255,255,0.45)' }}>{user?.role || 'member'}</div>
-              </div>
               <button className="btn btn-sm cp-btn-primary" onClick={onLogout} style={{ fontSize: '.78rem', padding: '5px 14px' }}>
                 <i className="mdi mdi-logout me-1" />
                 <span className="d-none d-sm-inline">Sign out</span>

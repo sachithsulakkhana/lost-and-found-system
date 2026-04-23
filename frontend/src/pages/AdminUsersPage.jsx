@@ -28,7 +28,7 @@ export default function AdminUsersPage() {
     setLoading(true);
     try {
       const { data } = await api.get(`/admin/users?status=${status}`);
-      setUsers(data);
+      setUsers(data.filter(u => u.email !== 'student@example.com'));
     } catch (e) {
       toast.error('Failed to load users');
     } finally {

@@ -87,7 +87,7 @@ export default function RegisterPage() {
       <div className="cp-auth-card" style={{ width: 'min(520px, 100%)' }}>
         <div className="cp-auth-inner">
           <div className="cp-auth-logo">
-            <div className="logo-icon">R</div>
+            <img src="/reclaim-logo.png" alt="Reclaim" style={{ width: 64, height: 64, borderRadius: 16, objectFit: 'cover' }} />
             <h2>{steps[activeStep]}</h2>
             <p>Step {activeStep + 1} of {steps.length} &mdash; SLIIT Reclaim</p>
           </div>

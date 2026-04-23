@@ -28,7 +28,7 @@ export default function LoginPage() {
       <div className="cp-auth-card">
         <div className="cp-auth-inner">
           <div className="cp-auth-logo">
-            <div className="logo-icon">R</div>
+            <img src="/reclaim-logo.png" alt="Reclaim" style={{ width: 64, height: 64, borderRadius: 16, objectFit: 'cover' }} />
             <h2>Sign in to continue</h2>
             <p>Find what's lost. Return what's found.</p>
           </div>
