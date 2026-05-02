@@ -50,7 +50,7 @@ function BarChart({ data, labels, color = '#4e64ff', height = 60 }) {
           <div
             title={`${labels[i]}: ${v}`}
             style={{
-              width: '100%', background: v > 0 ? color : '#e5e7eb',
+              width: '100%', background: v > 0 ? color : 'rgba(255,255,255,0.08)',
               height: max > 0 ? `${(v / max) * height}px` : 2,
               borderRadius: '3px 3px 0 0', transition: 'height .3s', minHeight: v > 0 ? 3 : 0,
               cursor: 'default',
@@ -268,16 +268,7 @@ export default function DeviceLearningPage() {
         </div>
       </div>
 
-      {/* Debug Info */}
-      <div className="alert alert-info mb-3 p-2" style={{ fontSize: '0.85rem' }}>
-        🔍 <strong>Debug Info:</strong>
-        Token: <code>{localStorage.getItem('token') ? '✓ Present' : '✗ Missing'}</code> |
-        Devices loaded: <strong>{devices.length}</strong> |
-        Selected device: <code>{deviceId || 'None'}</code> |
-        Check browser console (F12) for detailed logs
-      </div>
-
-      {loading && (
+{loading && (
         <div className="text-center py-5 text-muted">
           <span className="spinner-border spinner-border-sm me-2" /> Loading ping history…
         </div>
@@ -292,20 +283,20 @@ export default function DeviceLearningPage() {
           {/* ── Row 1: Stat cards ── */}
           <div className="row g-3 mb-4">
             {[
-              { label: 'Total Valid Pings', value: pings.length, icon: 'mdi-map-marker-multiple', color: '#4e64ff' },
-              { label: 'Days Trained',      value: stats.daysTrained, icon: 'mdi-calendar-check', color: '#16a34a' },
-              { label: 'Anomalies Detected',value: stats.anomalies.length, icon: 'mdi-alert-circle', color: '#dc2626' },
-              { label: 'Device Status',     value: selectedDevice?.status || '—', icon: 'mdi-shield-check', color: '#f59e0b' },
+              { label: 'Total Valid Pings',  value: pings.length,                  icon: 'mdi-map-marker-multiple', color: '#38bdf8', bg: 'rgba(56,189,248,0.12)',  border: 'rgba(56,189,248,0.35)'  },
+              { label: 'Days Trained',       value: stats.daysTrained,             icon: 'mdi-calendar-check',      color: '#4ade80', bg: 'rgba(74,222,128,0.12)',  border: 'rgba(74,222,128,0.35)'  },
+              { label: 'Anomalies Detected', value: stats.anomalies.length,        icon: 'mdi-alert-circle',        color: '#f87171', bg: 'rgba(248,113,113,0.12)', border: 'rgba(248,113,113,0.35)' },
+              { label: 'Device Status',      value: selectedDevice?.status || '—', icon: 'mdi-shield-check',        color: '#fbbf24', bg: 'rgba(251,191,36,0.12)',  border: 'rgba(251,191,36,0.35)'  },
             ].map(c => (
               <div key={c.label} className="col-6 col-md-3">
-                <div className="card h-100">
-                  <div className="card-body d-flex align-items-center gap-3">
-                    <div style={{ fontSize: 28, color: c.color }}>
+                <div style={{ background: c.bg, border: `1px solid ${c.border}`, borderRadius: 14, padding: '18px', userSelect: 'none', height: '100%' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                    <div style={{ width: 48, height: 48, borderRadius: 13, background: c.bg, border: `1px solid ${c.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: c.color, fontSize: '1.5rem', flexShrink: 0 }}>
                       <i className={`mdi ${c.icon}`} />
                     </div>
                     <div>
-                      <div className="text-muted small">{c.label}</div>
-                      <div className="fw-bold fs-5">{c.value}</div>
+                      <div style={{ color: 'rgba(255,255,255,0.65)', fontSize: '0.72rem', fontWeight: 600, letterSpacing: '.06em', textTransform: 'uppercase', marginBottom: 4 }}>{c.label}</div>
+                      <div style={{ color: '#fff', fontSize: '1.8rem', fontWeight: 800, lineHeight: 1 }}>{c.value}</div>
                     </div>
                   </div>
                 </div>
@@ -442,7 +433,7 @@ export default function DeviceLearningPage() {
                     <i className="mdi mdi-function-variant me-1 text-primary" />
                     How Score is Computed
                   </h6>
-                  <div className="p-3 rounded-3 mb-3" style={{ background: '#f8faff', border: '1px solid #e0e7ff', fontFamily: 'monospace', fontSize: '.8rem' }}>
+                  <div className="p-3 rounded-3 mb-3" style={{ background: 'rgba(78,100,255,0.08)', border: '1px solid rgba(78,100,255,0.2)', fontFamily: 'monospace', fontSize: '.8rem' }}>
                     <div className="text-muted mb-1">// mlService.js formula</div>
                     <div>dist = √( (lat−avgLat)² + (lng−avgLng)² )</div>
                     <div>locScore = min(dist × 1000, 1.0)</div>
@@ -451,14 +442,14 @@ export default function DeviceLearningPage() {
                   </div>
                   <div className="row g-2 text-center">
                     <div className="col-6">
-                      <div className="p-2 rounded-3" style={{ background: '#eff6ff', border: '1px solid #bfdbfe' }}>
-                        <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#4e64ff' }}>70%</div>
+                      <div className="p-2 rounded-3" style={{ background: 'rgba(78,100,255,0.15)', border: '1px solid rgba(78,100,255,0.3)' }}>
+                        <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#818cf8' }}>70%</div>
                         <div className="small text-muted">Location weight</div>
                       </div>
                     </div>
                     <div className="col-6">
-                      <div className="p-2 rounded-3" style={{ background: '#f0fdf4', border: '1px solid #bbf7d0' }}>
-                        <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#16a34a' }}>30%</div>
+                      <div className="p-2 rounded-3" style={{ background: 'rgba(22,163,74,0.12)', border: '1px solid rgba(22,163,74,0.25)' }}>
+                        <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#4ade80' }}>30%</div>
                         <div className="small text-muted">Time weight</div>
                       </div>
                     </div>
@@ -502,8 +493,8 @@ export default function DeviceLearningPage() {
                   </button>
                   {calcScore !== null && (
                     <div className="p-3 rounded-3 text-center" style={{
-                      background: calcScore >= 0.7 ? '#fef2f2' : calcScore >= 0.5 ? '#fffbeb' : '#f0fdf4',
-                      border: `1px solid ${calcScore >= 0.7 ? '#fecaca' : calcScore >= 0.5 ? '#fed7aa' : '#bbf7d0'}`
+                      background: calcScore >= 0.7 ? 'rgba(220,38,38,0.12)' : calcScore >= 0.5 ? 'rgba(245,158,11,0.12)' : 'rgba(22,163,74,0.12)',
+                      border: `1px solid ${calcScore >= 0.7 ? 'rgba(220,38,38,0.3)' : calcScore >= 0.5 ? 'rgba(245,158,11,0.3)' : 'rgba(22,163,74,0.25)'}`
                     }}>
                       <div className="small text-muted mb-1">Anomaly Score</div>
                       <div style={{ fontSize: '2rem', fontWeight: 800 }}>
@@ -680,7 +671,7 @@ export default function DeviceLearningPage() {
               <div className="row g-3">
                 {/* Confidence meter */}
                 <div className="col-md-4">
-                  <div className="p-3 rounded-3" style={{ background: '#f8faff', border: '1px solid #e0e7ff' }}>
+                  <div className="p-3 rounded-3" style={{ background: 'rgba(78,100,255,0.08)', border: '1px solid rgba(78,100,255,0.18)' }}>
                     <div className="small text-muted mb-1">Model Confidence</div>
                     <div className="fw-bold fs-4" style={{ color: replayStats ? (replayStats.confidence > 0.7 ? '#16a34a' : replayStats.confidence > 0.3 ? '#f59e0b' : '#dc2626') : '#9ca3af' }}>
                       {replayStats ? (replayStats.confidence * 100).toFixed(0) : 0}%
@@ -703,7 +694,7 @@ export default function DeviceLearningPage() {
 
                 {/* Learned centre */}
                 <div className="col-md-4">
-                  <div className="p-3 rounded-3" style={{ background: '#f8faff', border: '1px solid #e0e7ff' }}>
+                  <div className="p-3 rounded-3" style={{ background: 'rgba(78,100,255,0.08)', border: '1px solid rgba(78,100,255,0.18)' }}>
                     <div className="small text-muted mb-1">Learned Centre</div>
                     <div className="fw-semibold" style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>
                       {replayStats
@@ -716,7 +707,7 @@ export default function DeviceLearningPage() {
 
                 {/* Latest ping time */}
                 <div className="col-md-4">
-                  <div className="p-3 rounded-3" style={{ background: '#f8faff', border: '1px solid #e0e7ff' }}>
+                  <div className="p-3 rounded-3" style={{ background: 'rgba(78,100,255,0.08)', border: '1px solid rgba(78,100,255,0.18)' }}>
                     <div className="small text-muted mb-1">Latest Ping</div>
                     <div className="fw-semibold small">
                       {replayIdx > 0 && sortedPings[replayIdx - 1]
@@ -771,7 +762,7 @@ export default function DeviceLearningPage() {
                       <div style={{ fontSize: '.7rem', color: '#9ca3af' }}>{step.sub}</div>
                     </div>
                     {i < arr.length - 1 && (
-                      <div style={{ width: 40, height: 2, background: '#e5e7eb', flexShrink: 0 }} />
+                      <div style={{ width: 40, height: 2, background: 'rgba(255,255,255,0.1)', flexShrink: 0 }} />
                     )}
                   </div>
                 ))}

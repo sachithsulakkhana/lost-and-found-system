@@ -95,7 +95,7 @@ export default function DevicesPage() {
     const isLearning = d.status === 'LEARNING';
 
     return (
-      <tr key={d._id} style={isThis ? { background: '#f0f7ff' } : {}}>
+      <tr key={d._id} style={isThis ? { background: 'rgba(78,100,255,0.12)' } : {}}>
         <td>
           <div className="d-flex align-items-center gap-2">
             <span className="cp-stat icon" style={{ width: 38, height: 38, borderRadius: 12, background: isThis ? '#dbeafe' : undefined }}>
@@ -229,7 +229,7 @@ export default function DevicesPage() {
                     {/* Separator if there are other devices */}
                     {thisDevice && otherDevices.length > 0 && (
                       <tr>
-                        <td colSpan={5} className="py-1 px-3 text-muted small" style={{ background: '#f8f9fa', fontStyle: 'italic' }}>
+                        <td colSpan={5} className="py-1 px-3 text-muted small" style={{ background: 'rgba(255,255,255,0.04)', fontStyle: 'italic' }}>
                           Other registered devices
                         </td>
                       </tr>

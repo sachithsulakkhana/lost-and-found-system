@@ -224,14 +224,14 @@ export default function QuickLocationLogger({ deviceId }) {
           <div className="col-md-4">
             <div className="p-3 bg-light border rounded-3">
               <div className="text-muted small">Status</div>
-              <div className="fw-semibold">{running ? 'RUNNING' : 'STOPPED'}</div>
+              <div className="fw-semibold" style={{ whiteSpace: 'nowrap' }}>{running ? 'RUNNING' : 'STOPPED'}</div>
               <div className="text-muted small mt-1">Transport: {transport} • WS: {wsState}</div>
             </div>
           </div>
           <div className="col-md-4">
             <div className="p-3 bg-light border rounded-3">
               <div className="text-muted small">Last Sent</div>
-              <div className="fw-semibold">{lastSentAt ? new Date(lastSentAt).toLocaleString() : '—'}</div>
+              <div className="fw-semibold">{lastSentAt ? new Date(lastSentAt).toLocaleTimeString() : '—'}</div>
             </div>
           </div>
           <div className="col-md-4">

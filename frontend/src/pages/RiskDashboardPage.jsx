@@ -345,35 +345,54 @@ export default function RiskDashboardPage() {
                   <span className="text-muted small">Updated {new Date().toLocaleTimeString()}</span>
                 </div>
                 <div className="row g-3">
+                  {/* Weather — sky blue */}
                   <div className="col-md-3">
-                    <div className="p-3 bg-light border rounded-3 h-100">
-                      <div className="text-muted small">Weather</div>
-                      <div className="fw-bold mt-1 d-flex align-items-center gap-2">
-                        <i className={`mdi ${weatherLabel(currentConditions.weather).icon}`} /> {weatherLabel(currentConditions.weather).label}
+                    <div style={{ background: 'rgba(56,189,248,0.1)', border: '1px solid rgba(56,189,248,0.35)', borderRadius: 14, padding: '16px 18px', userSelect: 'none' }}>
+                      <div style={{ color: '#ffffff', fontSize: '0.7rem', fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 10 }}>Weather</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <div style={{ width: 42, height: 42, borderRadius: 11, background: 'rgba(56,189,248,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#38bdf8', fontSize: '1.35rem', flexShrink: 0 }}>
+                          <i className={`mdi ${weatherLabel(currentConditions.weather).icon}`} />
+                        </div>
+                        <div style={{ color: '#fff', fontWeight: 700, fontSize: '1.1rem' }}>{weatherLabel(currentConditions.weather).label}</div>
                       </div>
                     </div>
                   </div>
+
+                  {/* Crowd Level — amber */}
                   <div className="col-md-3">
-                    <div className="p-3 bg-light border rounded-3 h-100">
-                      <div className="text-muted small">Crowd Level</div>
-                      <div className="fw-bold mt-1 d-flex align-items-center gap-2">
-                        <i className="mdi mdi-account-group" /> {crowdLabel(currentConditions.crowdLevel)}
+                    <div style={{ background: 'rgba(251,146,60,0.1)', border: '1px solid rgba(251,146,60,0.35)', borderRadius: 14, padding: '16px 18px', userSelect: 'none' }}>
+                      <div style={{ color: '#ffffff', fontSize: '0.7rem', fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 10 }}>Crowd Level</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <div style={{ width: 42, height: 42, borderRadius: 11, background: 'rgba(251,146,60,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fb923c', fontSize: '1.35rem', flexShrink: 0 }}>
+                          <i className="mdi mdi-account-group" />
+                        </div>
+                        <div style={{ color: '#fff', fontWeight: 700, fontSize: '1.1rem' }}>{crowdLabel(currentConditions.crowdLevel)}</div>
                       </div>
                     </div>
                   </div>
+
+                  {/* Time — violet */}
                   <div className="col-md-3">
-                    <div className="p-3 bg-light border rounded-3 h-100">
-                      <div className="text-muted small">Time</div>
-                      <div className="fw-bold mt-1 d-flex align-items-center gap-2">
-                        <i className="mdi mdi-clock-outline" /> {currentConditions.time || '—'}
+                    <div style={{ background: 'rgba(167,139,250,0.1)', border: '1px solid rgba(167,139,250,0.35)', borderRadius: 14, padding: '16px 18px', userSelect: 'none' }}>
+                      <div style={{ color: '#ffffff', fontSize: '0.7rem', fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 10 }}>Time</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <div style={{ width: 42, height: 42, borderRadius: 11, background: 'rgba(167,139,250,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#a78bfa', fontSize: '1.35rem', flexShrink: 0 }}>
+                          <i className="mdi mdi-clock-outline" />
+                        </div>
+                        <div style={{ color: '#fff', fontWeight: 700, fontSize: '1.1rem' }}>{currentConditions.time || '—'}</div>
                       </div>
                     </div>
                   </div>
+
+                  {/* Day Type — emerald */}
                   <div className="col-md-3">
-                    <div className="p-3 bg-light border rounded-3 h-100">
-                      <div className="text-muted small">Day Type</div>
-                      <div className="fw-bold mt-1 d-flex align-items-center gap-2">
-                        <i className="mdi mdi-calendar" /> {currentConditions.dayType === 'weekend' ? 'Weekend' : 'Weekday'}
+                    <div style={{ background: 'rgba(74,222,128,0.1)', border: '1px solid rgba(74,222,128,0.35)', borderRadius: 14, padding: '16px 18px', userSelect: 'none' }}>
+                      <div style={{ color: '#ffffff', fontSize: '0.7rem', fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 10 }}>Day Type</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <div style={{ width: 42, height: 42, borderRadius: 11, background: 'rgba(74,222,128,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4ade80', fontSize: '1.35rem', flexShrink: 0 }}>
+                          <i className="mdi mdi-calendar" />
+                        </div>
+                        <div style={{ color: '#fff', fontWeight: 700, fontSize: '1.1rem' }}>{currentConditions.dayType === 'weekend' ? 'Weekend' : 'Weekday'}</div>
                       </div>
                     </div>
                   </div>
@@ -599,7 +618,7 @@ export default function RiskDashboardPage() {
                     { icon: mlPipeline.retrained ? 'mdi-check-circle' : 'mdi-information', label: mlPipeline.retrained ? `Model retrained! Accuracy: ${mlPipeline.accuracy ? (mlPipeline.accuracy*100).toFixed(1)+'%' : 'updated'}` : 'Buffer updated — waiting for threshold' },
                   ];
                   return (
-                    <div className="mt-3 p-3 rounded-3" style={{ background: '#f8faff', border: '1px solid #c7d2fe' }}>
+                    <div className="mt-3 p-3 rounded-3" style={{ background: 'rgba(78,100,255,0.08)', border: '1px solid rgba(78,100,255,0.22)' }}>
                       <div className="fw-semibold small mb-2 d-flex align-items-center gap-2">
                         <i className="mdi mdi-brain text-primary" /> ML Pipeline
                       </div>
@@ -610,8 +629,8 @@ export default function RiskDashboardPage() {
                         return (
                           <div key={i} className="d-flex align-items-center gap-2 mb-2" style={{ opacity: pending ? 0.35 : 1, transition: 'opacity .3s' }}>
                             <div style={{ width: 28, height: 28, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                              background: done ? '#16a34a' : active ? '#4e64ff' : '#e5e7eb',
-                              color: (done || active) ? '#fff' : '#9ca3af', fontSize: 14 }}>
+                              background: done ? '#16a34a' : active ? '#4e64ff' : 'rgba(255,255,255,0.1)',
+                              color: (done || active) ? '#fff' : 'rgba(255,255,255,0.4)', fontSize: 14 }}>
                               {active
                                 ? <span className="spinner-border spinner-border-sm" style={{ width: 14, height: 14, borderWidth: 2 }} />
                                 : <i className={`mdi ${done ? 'mdi-check' : s.icon}`} />}

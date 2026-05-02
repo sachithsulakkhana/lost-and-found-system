@@ -10,8 +10,8 @@
   --cp-sidebar: #0d0f16;
   --cp-sidebar-2: #080a0e;
   --cp-text: #ffffff;
-  --cp-muted: rgba(255,255,255,0.5);
-  --cp-muted-2: rgba(255,255,255,0.28);
+  --cp-muted: rgba(255,255,255,0.65);
+  --cp-muted-2: rgba(255,255,255,0.45);
   --cp-card: #141720;
   --cp-card-2: #1a1f2e;
   --cp-border: rgba(255,255,255,0.08);
@@ -169,13 +169,19 @@ body {
 .card .card-title { font-weight: 700; color: var(--cp-text); }
 
 /* ── Typography ─────────────────────────────────────────────── */
-h1,h2,h3,h4,h5 {
+h1,h2,h3,h4,h5,h6 {
   letter-spacing: -.02em;
   color: var(--cp-text);
   font-weight: 700;
 }
 h2 { font-size: 1.6rem; }
 h3 { font-size: 1.1rem; }
+
+/* All bold/semibold text inside cards should be white */
+.card .fw-bold, .card .fw-semibold { color: var(--cp-text); }
+
+/* Nav link labels, form labels — boost visibility */
+.form-label { color: rgba(255,255,255,0.8) !important; }
 
 .text-muted { color: var(--cp-muted) !important; }
 
@@ -393,6 +399,58 @@ h3 { font-size: 1.1rem; }
   border-radius: 999px;
 }
 .btn-primary:hover { background: var(--cp-primary-2); border-color: var(--cp-primary-2); }
+
+/* ── Nav tabs dark theme ────────────────────────────────────── */
+.nav-tabs {
+  border-color: var(--cp-border);
+}
+.nav-tabs .nav-link {
+  color: var(--cp-muted);
+  border-color: transparent;
+  border-radius: 8px 8px 0 0;
+}
+.nav-tabs .nav-link:hover {
+  color: var(--cp-text);
+  border-color: transparent;
+  background: rgba(255,255,255,0.05);
+}
+.nav-tabs .nav-link.active {
+  background: var(--cp-card);
+  border-color: var(--cp-border) var(--cp-border) var(--cp-card);
+  color: var(--cp-text);
+  font-weight: 600;
+}
+
+/* ── Prevent text selection on display tiles ────────────────── */
+.cp-stat, .p-3.bg-light, .p-2.bg-light, .p-3.rounded-3, .p-2.rounded-3 {
+  user-select: none;
+}
+
+/* ── List group dark theme ──────────────────────────────────── */
+.list-group-item {
+  background-color: var(--cp-card-2);
+  border-color: var(--cp-border);
+  color: var(--cp-text);
+}
+.list-group-item-action:hover,
+.list-group-item-action:focus {
+  background-color: rgba(255,255,255,0.06);
+  color: var(--cp-text);
+}
+.list-group-item.active {
+  background-color: rgba(108,71,255,0.25);
+  border-color: rgba(108,71,255,0.4);
+  color: #fff;
+}
+
+/* ── bg-light override for dark theme ───────────────────────── */
+/* Bootstrap bg-light is white — text-muted (white 50%) is invisible on it.
+   Override to a subtle dark tile so all sub-section labels stay readable. */
+.bg-light {
+  background-color: rgba(255,255,255,0.05) !important;
+}
+/* text-dark inside bg-light badges should stay readable */
+.bg-light.text-dark, .badge.bg-light { color: var(--cp-muted) !important; }
 
 /* ── Leaflet ────────────────────────────────────────────────── */
 .leaflet-container { border-radius: 12px; }

@@ -269,7 +269,9 @@ export default function DeviceMonitoringPage() {
                   <div className="card-body d-flex align-items-center justify-content-between">
                     <div>
                       <div className="label">Current Status</div>
-                      <div className="value" style={{ fontSize: '1.4rem' }}>{monitoringStatus?.deviceStatus || '—'}</div>
+                      <div className="value" style={{ fontSize: '1.4rem' }}>
+                        {monitoringStatus?.deviceStatus || selectedDevice?.status || '—'}
+                      </div>
                     </div>
                     <div className="icon"><i className="mdi mdi-shield-check-outline" /></div>
                   </div>
@@ -280,7 +282,13 @@ export default function DeviceMonitoringPage() {
                   <div className="card-body d-flex align-items-center justify-content-between">
                     <div>
                       <div className="label">Last Seen</div>
-                      <div className="value" style={{ fontSize: '1rem' }}>{monitoringStatus?.lastSeen ? new Date(monitoringStatus.lastSeen).toLocaleString() : '—'}</div>
+                      <div className="value" style={{ fontSize: '1rem' }}>
+                        {monitoringStatus?.lastSeen
+                          ? new Date(monitoringStatus.lastSeen).toLocaleString()
+                          : selectedDevice?.lastSeen
+                            ? new Date(selectedDevice.lastSeen).toLocaleString()
+                            : '—'}
+                      </div>
                     </div>
                     <div className="icon"><i className="mdi mdi-clock-outline" /></div>
                   </div>
